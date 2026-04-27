@@ -16,7 +16,29 @@ const sessionStart = Date.now();
 export default function NotificationManager() {
   const pathname = usePathname();
   const [toast, setToast] = React.useState<{ title: string, body: string } | null>(null);
+  const [showNotificationPrompt, setShowNotificationPrompt] = React.useState(false);
   const lastAlertTimeRef = React.useRef<number>(sessionStart);
+  
+  const handleRequestPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      setShowNotificationPrompt(false);
+      
+      const user = auth.currentUser;
+      if (user) {
+        await scaleService.updateUserProfile(user.uid, {
+          notificationPermission: permission
+        });
+
+        if (permission === 'granted') {
+          await requestToken(user.uid);
+        }
+      }
+    } catch (error) {
+      console.error("Error setting up notifications:", error);
+      setShowNotificationPrompt(false);
+    }
+  };
 
   const requestToken = React.useCallback(async (uid: string) => {
     try {
@@ -133,22 +155,10 @@ export default function NotificationManager() {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          // Check if permission is already granted
-          if (Notification.permission === 'default') {
-            const permission = await Notification.requestPermission();
-            await scaleService.updateUserProfile(user.uid, {
-              notificationPermission: permission
-            });
-
-            if (permission === 'granted') {
-              await requestToken(user.uid);
-            }
-          } else if (Notification.permission === 'granted') {
-            await requestToken(user.uid);
-          }
-        } catch (error) {
-          console.error("Error setting up notifications:", error);
+        if (Notification.permission === 'default') {
+          setShowNotificationPrompt(true);
+        } else if (Notification.permission === 'granted') {
+          await requestToken(user.uid);
         }
       }
     });
@@ -186,6 +196,35 @@ export default function NotificationManager() {
 
   return (
     <AnimatePresence>
+      {showNotificationPrompt && (
+        <motion.div
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/50"
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full relative"
+          >
+             <button 
+                onClick={() => setShowNotificationPrompt(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+             >
+                <X size={20} />
+             </button>
+             <h3 className="text-xl font-black text-slate-900 mb-2">Notificações</h3>
+             <p className="text-sm text-slate-600 mb-6">Deseja receber avisos sobre sua escala diretamente na tela do seu celular?</p>
+             <button
+               onClick={handleRequestPermission}
+               className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all"
+             >
+               Permitir Notificações
+             </button>
+          </motion.div>
+        </motion.div>
+      )}
       {toast && (
         <motion.div
           initial={{ opacity: 0, y: -50, scale: 0.9 }}

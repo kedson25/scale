@@ -4,8 +4,8 @@ import React from 'react';
 import { Home, Calendar, User, Bell, MapPin } from 'lucide-react';
 
 interface MobileNavProps {
-  activeTab: 'home' | 'escala' | 'avisos' | 'perfil' | 'postos';
-  setActiveTab: (tab: 'home' | 'escala' | 'avisos' | 'perfil' | 'postos') => void;
+  activeTab: 'home' | 'escala' | 'avisos' | 'perfil';
+  setActiveTab: (tab: 'home' | 'escala' | 'avisos' | 'perfil') => void;
   unreadCount?: number;
 }
 
@@ -13,7 +13,6 @@ export default function MobileNav({ activeTab, setActiveTab, unreadCount = 0 }: 
   const navItems = [
     { id: 'home', name: 'Início', icon: Home },
     { id: 'escala', name: 'Escala', icon: Calendar },
-    { id: 'postos', name: 'Postos', icon: MapPin },
     { id: 'avisos', name: 'Avisos', icon: Bell, badge: unreadCount > 0 },
     { id: 'perfil', name: 'Perfil', icon: User },
   ] as const;

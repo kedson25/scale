@@ -21,7 +21,10 @@ import {
   Edit,
   Check,
   X,
-  Phone
+  Phone,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -29,7 +32,7 @@ import MobileNav from '@/components/MobileNav';
 import ProfilePictureUploader from '@/components/ProfilePictureUploader';
 import { getDaysForWeek, getCurrentWeekNumber, getWeeksInMonth } from '@/lib/dateUtils';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, updatePassword } from 'firebase/auth';
 import { scaleService, UserProfile, Team, Alert } from '@/lib/services/scaleService';
 import { useRouter } from 'next/navigation';
 
@@ -42,7 +45,6 @@ export default function MobileCollaboratorView() {
   const [dataReady, setDataReady] = React.useState({
     profile: false,
     alerts: false,
-    postos: false,
     users: false
   });
   const [selectedWeek, setSelectedWeek] = React.useState(getCurrentWeekNumber());
@@ -50,13 +52,15 @@ export default function MobileCollaboratorView() {
   const router = useRouter();
 
   const currentWeek = React.useMemo(() => getCurrentWeekNumber(), []);
-  const [activeTab, setActiveTab] = React.useState<'home' | 'escala' | 'avisos' | 'perfil' | 'postos'>('home');
+  const [activeTab, setActiveTab] = React.useState<'home' | 'escala' | 'avisos' | 'perfil'>('home');
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
+  const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [newPassword, setNewPassword] = React.useState('');
   const [whatsapp, setWhatsapp] = React.useState('');
   const [savingWhatsApp, setSavingWhatsApp] = React.useState(false);
   const [isEditingWhatsApp, setIsEditingWhatsApp] = React.useState(false);
   const [editingPhoto, setEditingPhoto] = React.useState<string | null>(null);
-  const [postos, setPostos] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<UserProfile[]>([]);
 
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,7 +91,7 @@ export default function MobileCollaboratorView() {
   const [currentMonth, setCurrentMonth] = React.useState('');
 
   React.useEffect(() => {
-    if (dataReady.profile && dataReady.alerts && dataReady.postos && dataReady.users) {
+    if (dataReady.profile && dataReady.alerts && dataReady.users) {
       setLoading(false);
     }
   }, [dataReady]);
@@ -115,6 +119,10 @@ export default function MobileCollaboratorView() {
                   setShowWhatsAppModal(true);
                 }
                 
+                if (profile.forcePasswordChange) {
+                    setShowPasswordModal(true);
+                }
+                
                 setLoadingStep('Carregando equipe...');
                 const handleProfileLoad = async () => {
                   if (profile.teamId) {
@@ -140,12 +148,6 @@ export default function MobileCollaboratorView() {
           setDataReady(prev => ({ ...prev, alerts: true }));
         });
 
-        // Subscribe to postos
-        const unsubPostos = scaleService.subscribeToPostos((newPostos) => {
-          setPostos(newPostos);
-          setDataReady(prev => ({ ...prev, postos: true }));
-        });
-
         // Subscribe to all users to resolve names
         const unsubUsers = scaleService.subscribeToUsers((newUsers) => {
           setUsers(newUsers);
@@ -155,7 +157,6 @@ export default function MobileCollaboratorView() {
         return () => {
           unsubUser();
           unsubAlerts();
-          unsubPostos();
           unsubUsers();
         };
       } catch (err) {
@@ -329,6 +330,15 @@ export default function MobileCollaboratorView() {
              </div>
           )}
 
+          {alerts.length > 0 && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Último Recado</h3>
+               <p className="text-sm font-bold text-slate-900 mb-1">{alerts[0].title}</p>
+               <p className="text-sm text-slate-600 line-clamp-2">{alerts[0].message}</p>
+               <button onClick={() => setActiveTab('avisos')} className="mt-4 text-xs font-black text-blue-600">Ler aviso →</button>
+            </div>
+          )}
+
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-sm text-white">
             <div className="flex items-center gap-3 mb-4">
               <CalendarOff size={24} className="text-blue-100" />
@@ -437,6 +447,13 @@ export default function MobileCollaboratorView() {
                   </div>
                 )}
               </div>
+              
+              <button 
+                onClick={() => setShowPasswordModal(true)}
+                className="w-full py-4 text-sm font-black text-blue-600 bg-blue-50 rounded-2xl"
+              >
+                Trocar Senha
+              </button>
             </div>
           </div>
         </div>
@@ -515,92 +532,6 @@ export default function MobileCollaboratorView() {
       );
     }
 
-    if (activeTab === 'postos') {
-      return (
-        <div className="p-4 space-y-4 pb-24">
-          <h2 className="text-xl font-bold text-slate-900 uppercase">Postos de Trabalho</h2>
-          {postos.length === 0 ? (
-            <p className="text-slate-500 font-medium text-center py-12">Nenhum posto definido.</p>
-          ) : (
-            <div className="space-y-4">
-              {postos.sort((a, b) => a.numero - b.numero).map(posto => {
-                const user1 = users.find(u => u.uid === posto.turno1UserId);
-                const user2 = users.find(u => u.uid === posto.turno2UserId);
-                const isUserInPost = userProfile?.uid === posto.turno1UserId || userProfile?.uid === posto.turno2UserId;
-                const isTurno1 = userProfile?.uid === posto.turno1UserId;
-                const replacement = isTurno1 ? user2 : null;
-                const predecessor = !isTurno1 ? user1 : null;
-                
-                return (
-                  <div key={posto.id} className={`bg-white p-5 rounded-2xl border shadow-sm space-y-4 transition-all ${isUserInPost ? 'ring-2 ring-blue-500 border-transparent' : 'border-slate-200 hover:border-blue-300'}`}>
-                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-black text-blue-600 text-lg uppercase tracking-tight">Posto {posto.numero}</h3>
-                            {isUserInPost && (
-                                <span className="bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Sua Vaga</span>
-                            )}
-                        </div>
-                        <div className="flex gap-1">
-                            {posto.horarioTroca && (
-                                <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg">
-                                    <Clock size={10} className="text-slate-500" />
-                                    <span className="text-[10px] font-black text-slate-700">{posto.horarioTroca}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {isUserInPost && (
-                        <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 mb-2">
-                             <div className="flex items-center gap-2 text-blue-800 mb-1">
-                                <Users size={14} className="shrink-0" />
-                                <span className="text-[11px] font-black uppercase tracking-tight">
-                                    {isTurno1 ? 'Seu Substituto' : 'Você Substitui'}
-                                </span>
-                             </div>
-                             <p className="font-bold text-slate-900 text-sm">
-                                {isTurno1 ? (user2 ? user2.name : 'Vaga de substituição aberta') : (user1 ? user1.name : 'Vaga anterior aberta')}
-                             </p>
-                             {posto.horarioTroca && (
-                                <p className="text-[10px] text-blue-600 font-bold mt-1">
-                                    Troca programada para as <span className="text-lg underline underline-offset-2">{posto.horarioTroca}</span>
-                                </p>
-                             )}
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Turno 1</span>
-                            <div className="flex flex-col">
-                                <p className="font-bold text-slate-900">{user1 ? user1.name : 'Vago'}</p>
-                                <p className="text-[10px] font-medium text-slate-500">{posto.instrucaoTurno1 || 'Nenhuma instrução'}</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Turno 2</span>
-                            <div className="flex flex-col">
-                                <p className="font-bold text-slate-900">{user2 ? user2.name : 'Vago'}</p>
-                                <p className="text-[10px] font-medium text-slate-500">{posto.instrucaoTurno2 || 'Nenhuma instrução'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {posto.observacao && (
-                        <div className="pt-2 border-t border-slate-50">
-                             <p className="text-[11px] text-slate-500 italic"><strong className="text-slate-400 not-italic uppercase tracking-tighter">Nota:</strong> {posto.observacao}</p>
-                        </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      );
-    }
-    
     return (
       <>
         {/* Weekly Calendar Picker */}
@@ -797,22 +728,75 @@ export default function MobileCollaboratorView() {
       
       {showWhatsAppModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-sm p-6 bg-white shadow-xl">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Seu WhatsApp</h2>
+          <div className="w-full max-w-sm p-6 bg-white shadow-xl rounded-2xl">
+            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Phone className="text-green-500" size={24} />
+              WhatsApp
+            </h2>
             <p className="text-sm text-slate-600 mb-6">Para recebermos suas notificações e avisos, por favor insira seu número de WhatsApp com DDD.</p>
             <input 
               type="tel" 
               value={whatsapp} 
               onChange={handleWhatsAppChange}
               placeholder="(00) 00000-0000"
-              className="w-full p-3 mb-6 bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full p-3 mb-6 bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600 rounded-xl"
             />
             <button 
               onClick={saveWhatsApp}
               disabled={savingWhatsApp}
-              className="w-full py-3 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-3 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50 rounded-xl"
             >
               {savingWhatsApp ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-sm p-6 bg-white shadow-xl rounded-2xl relative">
+            <button 
+              onClick={() => setShowPasswordModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Lock className="text-blue-500" size={24} />
+              Redefinir Senha
+            </h2>
+            <p className="text-sm text-slate-600 mb-6">Como é seu primeiro acesso, por favor crie uma nova senha para sua conta.</p>
+            <div className="relative mb-6">
+              <input 
+                type={showNewPassword ? "text" : "password"} 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nova senha (min. 6 caracteres)"
+                className="w-full p-3 bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600 rounded-xl pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <button 
+              onClick={async () => {
+                if (newPassword.length < 6) return;
+                try {
+                  await updatePassword(auth.currentUser!, newPassword);
+                  await scaleService.updateUserProfile(userProfile!.uid, { forcePasswordChange: false });
+                  setShowPasswordModal(false);
+                } catch (e) {
+                  console.error(e);
+                  alert('Erro ao atualizar senha, faça login novamente.');
+                }
+              }}
+              className="w-full py-3 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50 rounded-xl"
+            >
+              Salvar Nova Senha
             </button>
           </div>
         </div>

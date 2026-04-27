@@ -54,6 +54,7 @@ export interface UserProfile {
   isadmin: boolean;
   teamId?: string;
   initialPassword?: string;
+  forcePasswordChange?: boolean;
   admissionDate?: string;
   company?: string;
   contract?: string;

@@ -5,7 +5,7 @@ import React, { Suspense } from 'react';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Calendar as CalendarIcon, Lock, Mail, Loader2, User } from 'lucide-react';
+import { Calendar as CalendarIcon, Lock, Mail, Loader2, User, Eye, EyeOff } from 'lucide-react';
 import { scaleService } from '@/lib/services/scaleService';
 
 function LoginForm() {
@@ -13,6 +13,7 @@ function LoginForm() {
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const router = useRouter();
@@ -61,6 +62,7 @@ function LoginForm() {
           name: name,
           role: 'collaborator',
           isadmin: false,
+          forcePasswordChange: true,
           createdAt: Date.now()
         });
         
@@ -136,12 +138,19 @@ function LoginForm() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   required
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-all"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
