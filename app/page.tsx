@@ -17,7 +17,11 @@ import {
   Calendar as CalendarIcon,
   Trash2,
   Clock,
-  Camera
+  Camera,
+  Edit,
+  Check,
+  X,
+  Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -35,6 +39,12 @@ export default function MobileCollaboratorView() {
   const [loading, setLoading] = React.useState(true);
   const [loadingStep, setLoadingStep] = React.useState('Iniciando...');
   const [mounted, setMounted] = React.useState(false);
+  const [dataReady, setDataReady] = React.useState({
+    profile: false,
+    alerts: false,
+    postos: false,
+    users: false
+  });
   const [selectedWeek, setSelectedWeek] = React.useState(getCurrentWeekNumber());
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const router = useRouter();
@@ -44,6 +54,7 @@ export default function MobileCollaboratorView() {
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
   const [whatsapp, setWhatsapp] = React.useState('');
   const [savingWhatsApp, setSavingWhatsApp] = React.useState(false);
+  const [isEditingWhatsApp, setIsEditingWhatsApp] = React.useState(false);
   const [editingPhoto, setEditingPhoto] = React.useState<string | null>(null);
   const [postos, setPostos] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<UserProfile[]>([]);
@@ -76,10 +87,17 @@ export default function MobileCollaboratorView() {
   const [currentMonth, setCurrentMonth] = React.useState('');
 
   React.useEffect(() => {
+    if (dataReady.profile && dataReady.alerts && dataReady.postos && dataReady.users) {
+      setLoading(false);
+    }
+  }, [dataReady]);
+
+  React.useEffect(() => {
     setMounted(true);
     setSelectedWeek(getCurrentWeekNumber());
     setCurrentMonth(new Date().toLocaleString('pt-BR', { month: 'long' }));
     setLoadingStep('Verificando sessão...');
+    
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push('/login');
@@ -103,12 +121,13 @@ export default function MobileCollaboratorView() {
                     const userTeam = await scaleService.getTeamById(profile.teamId);
                     if (userTeam) setTeam(userTeam);
                   }
-                  setLoadingStep('Sincronizando...');
-                  await new Promise(resolve => setTimeout(resolve, 5000));
-                  setLoading(false);
+                  setDataReady(prev => ({ ...prev, profile: true }));
                 };
                 
                 handleProfileLoad();
+              } else {
+                // Subsequent updates
+                setDataReady(prev => ({ ...prev, profile: true }));
               }
               return profile;
             });
@@ -118,15 +137,20 @@ export default function MobileCollaboratorView() {
         // Subscribe to alerts
         const unsubAlerts = scaleService.subscribeToAlerts(user.uid, undefined, (newAlerts) => {
           setAlerts(newAlerts);
+          setDataReady(prev => ({ ...prev, alerts: true }));
         });
 
         // Subscribe to postos
         const unsubPostos = scaleService.subscribeToPostos((newPostos) => {
           setPostos(newPostos);
+          setDataReady(prev => ({ ...prev, postos: true }));
         });
 
         // Subscribe to all users to resolve names
-        const unsubUsers = scaleService.subscribeToUsers(setUsers);
+        const unsubUsers = scaleService.subscribeToUsers((newUsers) => {
+          setUsers(newUsers);
+          setDataReady(prev => ({ ...prev, users: true }));
+        });
 
         return () => {
           unsubUser();
@@ -135,9 +159,8 @@ export default function MobileCollaboratorView() {
           unsubUsers();
         };
       } catch (err) {
-        // Error handled silently
-      } finally {
-        setLoading(false);
+        console.error("Error setting up subscriptions", err);
+        setLoading(false); // Fallback to show whatever we have or error screen
       }
     });
     return () => unsubscribeAuth();
@@ -243,20 +266,36 @@ export default function MobileCollaboratorView() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex h-screen flex-col bg-white max-w-md mx-auto sm:border-x border-slate-200 items-center justify-center p-6" suppressHydrationWarning>
-        <Image
-          src="https://gaocipthqhvsmcomfgcr.supabase.co/storage/v1/object/public/eco/logo.png"
-          alt="Loading..."
-          width={150}
-          height={150}
-          className="mb-8 animate-pulse"
-          referrerPolicy="no-referrer"
-        />
-        <div className="w-full space-y-4 text-center" suppressHydrationWarning>
-            <p className="font-bold text-slate-800 text-lg animate-pulse" suppressHydrationWarning>{loadingStep}</p>
-            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 animate-[width_2s_ease-in-out_infinite] w-1/2"></div>
+      <div className="relative flex min-h-screen w-full flex-col bg-slate-50 overflow-x-hidden sm:max-w-md sm:mx-auto sm:border-x border-slate-200">
+        <div className="fixed top-0 left-0 right-0 z-10 bg-white border-b border-slate-200">
+          <div className="flex items-center p-4 justify-between sm:max-w-md sm:mx-auto w-full">
+            <div className="size-10 rounded-full bg-slate-100 animate-pulse"></div>
+            <div className="flex-1 px-3 space-y-2">
+              <div className="h-4 w-24 bg-slate-100 rounded animate-pulse"></div>
+              <div className="h-3 w-16 bg-slate-50 rounded animate-pulse"></div>
             </div>
+            <div className="size-10 rounded-xl bg-slate-100 animate-pulse"></div>
+          </div>
+        </div>
+        
+        <div className="pt-24 px-4 space-y-6">
+          <div className="h-32 bg-white rounded-2xl border border-slate-100 animate-pulse"></div>
+          <div className="h-20 bg-white rounded-2xl border border-slate-100 animate-pulse"></div>
+          <div className="h-40 bg-white rounded-2xl border border-slate-100 animate-pulse shadow-sm"></div>
+          <div className="space-y-3">
+             <div className="h-3 w-32 bg-slate-200/50 rounded animate-pulse"></div>
+             <div className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse"></div>
+             <div className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse"></div>
+          </div>
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200">
+          <div className="flex justify-around sm:max-w-md sm:mx-auto">
+            <div className="size-12 rounded-xl bg-slate-50 animate-pulse"></div>
+            <div className="size-12 rounded-xl bg-slate-50 animate-pulse"></div>
+            <div className="size-12 rounded-xl bg-slate-50 animate-pulse"></div>
+            <div className="size-12 rounded-xl bg-slate-50 animate-pulse"></div>
+          </div>
         </div>
       </div>
     );
@@ -346,6 +385,57 @@ export default function MobileCollaboratorView() {
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Equipe</span>
                 <span className="text-sm font-medium text-slate-900">{team ? team.name : 'Sem Equipe'}</span>
+              </div>
+              
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 relative group">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">WhatsApp</span>
+                {isEditingWhatsApp ? (
+                  <div className="flex gap-2 items-center">
+                    <input 
+                      type="tel"
+                      value={whatsapp}
+                      onChange={handleWhatsAppChange}
+                      className="flex-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-600/20"
+                      placeholder="(00) 00000-0000"
+                      autoFocus
+                    />
+                    <button 
+                      onClick={async () => {
+                        await saveWhatsApp();
+                        setIsEditingWhatsApp(false);
+                      }}
+                      disabled={savingWhatsApp}
+                      className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+                    >
+                      {savingWhatsApp ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsEditingWhatsApp(false);
+                        setWhatsapp(user.whatsapp || '');
+                      }}
+                      className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Phone size={14} className="text-green-500" />
+                      <span className="text-sm font-medium text-slate-900">{user.whatsapp || 'Não informado'}</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setWhatsapp(user.whatsapp || '');
+                        setIsEditingWhatsApp(true);
+                      }}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Edit size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
