@@ -510,10 +510,11 @@ function DashboardContent({
     "general" | "modified"
   >("general");
   const [savedCustomShifts, setSavedCustomShifts] = React.useState<
-    { name: string; start: string; end: string }[]
+    { name: string; start: string; end: string; color: string }[]
   >([]);
   const [todayIso, setTodayIso] = React.useState("");
   const [showFullScale, setShowFullScale] = React.useState(false);
+  const [selectedCustomColor, setSelectedCustomColor] = React.useState("bg-blue-500");
 
   const currentWeekNum = React.useMemo(() => getCurrentWeekNumber(), []);
   const currentWeeksData = React.useMemo(() => {
@@ -572,8 +573,9 @@ function DashboardContent({
     name: string,
     start: string,
     end: string,
+    color: string,
   ) => {
-    const newShift = { name: name.toUpperCase(), start, end };
+    const newShift = { name: name.toUpperCase(), start, end, color };
     const updated = [...savedCustomShifts, newShift];
     setSavedCustomShifts(updated);
     try {
@@ -673,6 +675,7 @@ function DashboardContent({
     type: string | null,
     startTime: string,
     endTime: string,
+    color?: string,
   ) => {
     if (!assigningShift) return;
     if (selectedWeek < currentWeekNum) {
@@ -693,6 +696,7 @@ function DashboardContent({
           type,
           startTime,
           endTime,
+          color: color || "bg-blue-500",
           published: false,
         };
       }
@@ -1281,6 +1285,11 @@ function DashboardContent({
                             className={`text-lg font-bold ${isToday ? "text-blue-600" : "text-slate-900"}`}
                           >
                             {day.date}
+                          </div>
+                          <div
+                            className={`text-[9px] ${isToday ? "text-blue-500" : "text-slate-500"}`}
+                          >
+                            {day.fullDate.split('-')[2]}/{day.fullDate.split('-')[1]}/{day.fullDate.split('-')[0]}
                           </div>
                           <div className={`mt-1 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black ${workingCount > 0 ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"}`}>
                             {workingCount} ativos
@@ -1957,9 +1966,14 @@ function DashboardContent({
                     <ShiftOption
                       label={shift.name}
                       time={`${shift.start} - ${shift.end}`}
-                      color="bg-amber-500"
+                      color={shift.color}
                       onClick={() =>
-                        handleAssignShift(shift.name, shift.start, shift.end)
+                        handleAssignShift(
+                          shift.name,
+                          shift.start,
+                          shift.end,
+                          shift.color,
+                        )
                       }
                     />
                     <button
@@ -1981,6 +1995,15 @@ function DashboardContent({
             <h4 className="text-sm font-bold text-slate-900 mb-3">
               Criar Novo Horário Personalizado
             </h4>
+            {/* Color Selector */}
+            <div className="mb-4">
+              <label className="text-xs font-bold text-slate-400 uppercase">Cor do Turno</label>
+              <div className="flex gap-2 mt-2">
+                {["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500"].map(c => (
+                  <button key={c} type="button" className={`w-8 h-8 rounded-full ${c} ${selectedCustomColor === c ? 'ring-2 ring-offset-2 ring-slate-400' : ''}`} onClick={() => setSelectedCustomColor(c)} />
+                ))}
+              </div>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase">
@@ -2028,7 +2051,7 @@ function DashboardContent({
                   const end = (
                     document.getElementById("custom-end") as HTMLInputElement
                   ).value;
-                  handleSaveCustomShift(name, start, end);
+                  handleSaveCustomShift(name, start, end, selectedCustomColor);
                 }}
                 className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-none font-bold hover:bg-slate-200 transition-all"
               >
@@ -2045,7 +2068,7 @@ function DashboardContent({
                   const end = (
                     document.getElementById("custom-end") as HTMLInputElement
                   ).value;
-                  handleAssignShift(name.toUpperCase(), start, end);
+                  handleAssignShift(name.toUpperCase(), start, end, selectedCustomColor);
                 }}
                 className="flex-[2] py-3 bg-blue-600 text-white rounded-none font-bold hover:bg-blue-700 transition-all"
               >
@@ -2153,7 +2176,7 @@ function DashboardContent({
                                       ? "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm" 
                                       : shift.type === 'FOLGA' 
                                         ? "bg-slate-50 border-slate-200 text-slate-500" 
-                                        : "bg-blue-50 border-blue-200 text-blue-800 shadow-sm"
+                                        : `${shift.color || 'bg-blue-50 border-blue-200'} text-white shadow-sm`
                                   }`}>
                                     <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">{shift.type}</span>
                                     {shift.startTime !== '-' && (

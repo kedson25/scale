@@ -67,6 +67,7 @@ export interface UserProfile {
       startTime: string;
       endTime: string;
       published?: boolean;
+      color?: string;
     };
   };
   defaultLunchTime?: string | null;
