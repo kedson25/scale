@@ -57,6 +57,7 @@ export default function MobileCollaboratorView() {
   const [showPasswordModal, setShowPasswordModal] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [newPassword, setNewPassword] = React.useState('');
+  const [isScaleVisible, setIsScaleVisible] = React.useState(true);
   const [whatsapp, setWhatsapp] = React.useState('');
   const [savingWhatsApp, setSavingWhatsApp] = React.useState(false);
   const [isEditingWhatsApp, setIsEditingWhatsApp] = React.useState(false);
@@ -537,13 +538,18 @@ export default function MobileCollaboratorView() {
         {/* Weekly Calendar Picker */}
         <div className="px-4 py-4 bg-white border-b border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">
-              {mounted ? (
-                `${currentMonth} / Semana ${selectedWeek}`
-              ) : (
-                'Carregando...'
-              )}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">
+                {mounted ? (
+                  `${currentMonth} / Semana ${selectedWeek}`
+                ) : (
+                  'Carregando...'
+                )}
+              </h2>
+              <button onClick={() => setIsScaleVisible(!isScaleVisible)} className="text-slate-400 hover:text-blue-600">
+                {isScaleVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
+            </div>
             <div className="flex gap-1">
                <button 
                 onClick={handlePrevWeek}
@@ -614,7 +620,12 @@ export default function MobileCollaboratorView() {
         <div className="flex flex-col gap-3 p-4 pb-24">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Escala da Semana</h3>
           
-          {currentShifts.every(day => !day.shift) ? (
+          {!isScaleVisible ? (
+             <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-dashed border-slate-300 shadow-sm text-center">
+               <EyeOff size={48} className="text-slate-300 mb-4" />
+               <p className="text-slate-500 font-medium text-sm">Escala ocultada</p>
+             </div>
+          ) : currentShifts.every(day => !day.shift) ? (
             <div className="flex flex-col items-center justify-center p-8 bg-white rounded-2xl border border-slate-200 shadow-sm text-center">
               <CalendarOff size={48} className="text-slate-300 mb-4" />
               <p className="text-slate-500 font-medium text-sm">Escala não publicada ou sem turnos.</p>
