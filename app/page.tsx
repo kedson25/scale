@@ -307,30 +307,7 @@ export default function MobileCollaboratorView() {
   const renderContent = () => {
     if (activeTab === 'home') {
       return (
-        <div className="p-4 space-y-6 pb-24">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Semana {selectedWeek}</h2>
-            <p className="text-slate-500 text-sm mb-4">
-              {mounted ? `${currentDaysOfWeek[0].date} a ${currentDaysOfWeek[6].date} de ${currentMonth}` : 'Carregando...'}
-            </p>
-            <button 
-              onClick={() => setActiveTab('escala')}
-              className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
-            >
-              Ver Escala Completa
-            </button>
-          </div>
-
-          {(user as any)?.defaultLunchTime && (
-             <div className="bg-indigo-50 p-6 rounded-2xl shadow-sm border border-indigo-100">
-               <div className="flex items-center gap-3 mb-2">
-                 <Clock size={20} className="text-indigo-600" />
-                 <h2 className="text-sm font-bold text-indigo-900 uppercase">Horário de Almoço</h2>
-               </div>
-               <p className="text-2xl font-black text-indigo-700">{(user as any)?.defaultLunchTime}</p>
-             </div>
-          )}
-
+        <div className="p-4 space-y-6 pb-32">
           {alerts.length > 0 && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Último Recado</h3>
@@ -339,6 +316,28 @@ export default function MobileCollaboratorView() {
                <button onClick={() => setActiveTab('avisos')} className="mt-4 text-xs font-black text-blue-600">Ler aviso →</button>
             </div>
           )}
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Semana {selectedWeek}</h2>
+            <p className="text-slate-500 text-sm mb-4">
+              {mounted ? `${currentDaysOfWeek[0].date} a ${currentDaysOfWeek[6].date} de ${currentMonth}` : 'Carregando...'}
+            </p>
+            <button 
+              onClick={() => setActiveTab('escala')}
+              className="w-full py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
+            >
+              Ver Escala Completa
+            </button>
+            {(user as any)?.defaultLunchTime && (
+              <div className="mt-4 flex items-center justify-between p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-indigo-600" />
+                  <span className="text-xs font-bold text-indigo-900 uppercase">Almoço</span>
+                </div>
+                <p className="font-black text-indigo-700 text-sm">{(user as any)?.defaultLunchTime}</p>
+              </div>
+            )}
+          </div>
 
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-sm text-white">
             <div className="flex items-center gap-3 mb-4">
@@ -380,7 +379,7 @@ export default function MobileCollaboratorView() {
     if (activeTab === 'perfil') {
       if (!user) return null;
       return (
-        <div className="p-4 space-y-6 pb-24">
+        <div className="p-4 space-y-6 pb-32">
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm text-center">
             <div className="size-20 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4 border border-slate-200">
               <User size={40} />
@@ -463,7 +462,7 @@ export default function MobileCollaboratorView() {
 
     if (activeTab === 'avisos') {
       return (
-        <div className="p-4 space-y-6 pb-24">
+        <div className="p-4 space-y-6 pb-32">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Meus Avisos</h3>
             <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
@@ -617,7 +616,7 @@ export default function MobileCollaboratorView() {
         </div>
 
         {/* Shift List Section */}
-        <div className="flex flex-col gap-3 p-4 pb-24">
+        <div className="flex flex-col gap-3 p-4 pb-32">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Escala da Semana</h3>
           
           {!isScaleVisible ? (
