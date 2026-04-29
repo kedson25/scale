@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
-import { getDaysForWeek, getCurrentWeekNumber } from "@/lib/dateUtils";
+import { getDaysForWeek, getCurrentWeekNumber, getWeekLabel, REFERENCE_MONDAY } from "@/lib/dateUtils";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getDb, auth, secondaryAuth } from "@/lib/firebase";
 import {
@@ -519,14 +519,16 @@ function DashboardContent({
   const currentWeekNum = React.useMemo(() => getCurrentWeekNumber(), []);
   const currentWeeksData = React.useMemo(() => {
     const weeks = [];
-    for (let i = 1; i <= 5; i++) {
+    const baseWeek = Math.floor(currentWeekNum / 5) * 5;
+    for (let i = 0; i < 5; i++) {
+      const w = baseWeek + i;
       weeks.push({
-        weekNum: i,
-        days: getDaysForWeek(i)
+        weekNum: w,
+        days: getDaysForWeek(w)
       });
     }
     return weeks;
-  }, []);
+  }, [currentWeekNum]);
 
   const allWeeksDays = React.useMemo(() => {
     return currentWeeksData.flatMap(w => w.days);
@@ -851,8 +853,8 @@ function DashboardContent({
             offDaysMessagePush = ` Suas próximas folgas são: ${offDaysPush.join(", ")}.`;
           }
 
-          const dbMessage = `A sua escala para a semana ${publishWeek} foi atualizada.${offDaysMessageDB}`;
-          const pushMessage = `A sua escala para a semana ${publishWeek} foi atualizada.${offDaysMessagePush}`;
+      const dbMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${offDaysMessageDB}`;
+      const pushMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${offDaysMessagePush}`;
 
           await scaleService.createAlert({
             title: "Escala Atualizada 📅",
@@ -880,7 +882,7 @@ function DashboardContent({
         if (publishOption === "general") {
           await scaleService.createAlert({
             title: "Nova Escala Publicada 📅",
-            message: `Atenção equipe! A escala para a semana ${publishWeek} foi publicada e já está disponível para consulta no aplicativo.`,
+            message: `Atenção equipe! A escala para a semana ${getWeekLabel(publishWeek)} foi publicada e já está disponível para consulta no aplicativo.`,
             targetAudience: "all",
             targetId: "",
             priority: "Normal",
@@ -892,7 +894,7 @@ function DashboardContent({
 
         showNotification(
           publishOption === "general"
-            ? `Escala publicada e ${individualsNotified} pessoas notificadas na semana ${publishWeek}.`
+            ? `Escala publicada e ${individualsNotified} pessoas notificadas na semana ${getWeekLabel(publishWeek)}.`
             : `Alterações salvas e ${individualsNotified} pessoas notificadas individualmente.`,
           "success",
         );
@@ -937,10 +939,10 @@ function DashboardContent({
       firstDayOfMonth.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     const firstMonday = new Date(year, month, diff);
 
-    const targetMonday = new Date(firstMonday);
-    targetMonday.setDate(firstMonday.getDate() + (selectedWeek - 1) * 7);
+      const targetMonday = new Date(REFERENCE_MONDAY);
+      targetMonday.setDate(REFERENCE_MONDAY.getDate() + (selectedWeek) * 7);
 
-    const targetSunday = new Date(targetMonday);
+      const targetSunday = new Date(targetMonday);
     targetSunday.setDate(targetMonday.getDate() - 1); // Sunday before Monday
 
     const exportDays: { name: string; date: string; fullDate: string }[] = [];
@@ -1054,7 +1056,7 @@ function DashboardContent({
       node.style.left = originalLeft;
 
       const link = document.createElement("a");
-      link.download = `escala_semana_${selectedWeek}.png`;
+      link.download = `escala_semana_${getWeekLabel(selectedWeek)}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -1162,13 +1164,13 @@ function DashboardContent({
                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Visualizar Escala</h3>
                    <div className="flex gap-1 md:hidden">
                     <button 
-                      onClick={() => setSelectedWeek(prev => prev > 1 ? prev - 1 : 5)}
+                      onClick={() => setSelectedWeek(prev => prev - 1)}
                       className="p-1 rounded bg-white border border-slate-200 text-slate-400"
                     >
                       <ChevronLeft size={14} />
                     </button>
                     <button 
-                      onClick={() => setSelectedWeek(prev => prev < 5 ? prev + 1 : 1)}
+                      onClick={() => setSelectedWeek(prev => prev + 1)}
                       className="p-1 rounded bg-white border border-slate-200 text-slate-400"
                     >
                       <ChevronRight size={14} />
@@ -1176,39 +1178,45 @@ function DashboardContent({
                    </div>
                 </div>
                 <div className="flex bg-slate-100/80 p-1.5 rounded-2xl overflow-x-auto border border-slate-200/60 shadow-inner max-w-full relative hide-scrollbar">
-                  {[1, 2, 3, 4, 5].map((week) => (
-                    <button
-                      key={week}
-                      onClick={() => setSelectedWeek(week)}
-                      className={`flex-none px-6 py-2 rounded-xl text-xs font-black uppercase transition-all relative ${
-                        selectedWeek === week
-                          ? "bg-white text-blue-600 shadow-md z-10 scale-105"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 z-0"
-                      } ${week === currentWeekNum ? "" : ""}`}
-                    >
-                      Semana {week}
-                      {week === currentWeekNum && (
-                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                           <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-white"></span>
-                        </span>
-                      )}
-                      {selectedWeek === week && (
-                        <motion.div 
-                          layoutId="active-week-bg"
-                          className="absolute inset-0 bg-white rounded-xl shadow-sm -z-10"
-                        />
-                      )}
-                    </button>
-                  ))}
+                  {(() => {
+                    const startWeek = Math.floor(selectedWeek / 5) * 5;
+                    return [0, 1, 2, 3, 4].map((i) => {
+                      const weekIdx = startWeek + i;
+                      return (
+                        <button
+                          key={weekIdx}
+                          onClick={() => setSelectedWeek(weekIdx)}
+                          className={`flex-none px-6 py-2 rounded-xl text-xs font-black uppercase transition-all relative ${
+                            selectedWeek === weekIdx
+                              ? "bg-white text-blue-600 shadow-md z-10 scale-105"
+                              : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 z-0"
+                          }`}
+                        >
+                          Semana {getWeekLabel(weekIdx)}
+                          {weekIdx === currentWeekNum && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                               <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-white"></span>
+                            </span>
+                          )}
+                          {selectedWeek === weekIdx && (
+                            <motion.div 
+                              layoutId="active-week-bg"
+                              className="absolute inset-0 bg-white rounded-xl shadow-sm -z-10"
+                            />
+                          )}
+                        </button>
+                      );
+                    });
+                  })()}
                   {/* Reset/Next Loop Button */}
                   <button
-                    onClick={() => setSelectedWeek(selectedWeek < 5 ? selectedWeek + 1 : 1)}
+                    onClick={() => setSelectedWeek(selectedWeek + 1)}
                     className="flex-none px-4 py-2 rounded-xl text-xs font-black text-blue-400 hover:text-blue-600 transition-all flex items-center gap-1"
-                    title={selectedWeek === 5 ? "Voltar para Semana 1" : "Próxima Semana"}
+                    title="Próxima Semana"
                   >
-                    {selectedWeek === 5 ? "RESET" : "PRÓX"}
-                    {selectedWeek === 5 ? <ArrowLeft size={14} /> : <ChevronRight size={14} />}
+                    PRÓX
+                    <ChevronRight size={14} />
                   </button>
                 </div>
               </div>
@@ -1359,7 +1367,7 @@ function DashboardContent({
                                       }
                                       setAssigningShift({ user: collab, day });
                                     }}
-                                    className={`${getShiftColor(shift.type)} text-white text-[10px] font-bold p-2.5 rounded-xl text-center shadow-sm w-full transition-transform hover:scale-105`}
+                                    className={`${getShiftColor(shift.type, shift.color)} text-white text-[10px] font-bold p-2.5 rounded-xl text-center shadow-sm w-full transition-transform hover:scale-105`}
                                   >
                                     {shift.type}
                                     <br />
@@ -2176,7 +2184,7 @@ function DashboardContent({
                                       ? "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm" 
                                       : shift.type === 'FOLGA' 
                                         ? "bg-slate-50 border-slate-200 text-slate-500" 
-                                        : `${shift.color || 'bg-blue-50 border-blue-200'} text-white shadow-sm`
+                                        : `${shift.color || 'bg-blue-500'} text-white shadow-sm border-transparent`
                                   }`}>
                                     <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">{shift.type}</span>
                                     {shift.startTime !== '-' && (
@@ -3879,6 +3887,7 @@ function CadastrarContent({
     name: "",
     email: "",
     password: "",
+    whatsapp: "",
     role: "collaborator" as "admin" | "collaborator",
     teamId: "",
     admissionDate: "",
@@ -3906,6 +3915,7 @@ function CadastrarContent({
         uid: user.uid,
         email: newUser.email,
         name: newUser.name,
+        whatsapp: newUser.whatsapp,
         role: newUser.role,
         isadmin: newUser.role === "admin",
         teamId: newUser.teamId,
@@ -3922,6 +3932,7 @@ function CadastrarContent({
         name: "",
         email: "",
         password: "",
+        whatsapp: "",
         role: "collaborator",
         teamId: "",
         admissionDate: "",
@@ -3992,6 +4003,20 @@ function CadastrarContent({
                   setNewUser({ ...newUser, password: e.target.value })
                 }
                 placeholder="••••••••"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700">
+                WhatsApp
+              </label>
+              <input
+                type="text"
+                value={newUser.whatsapp}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, whatsapp: e.target.value })
+                }
+                placeholder="Ex: 11988887777"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-all"
               />
             </div>
@@ -4173,6 +4198,7 @@ function UsuariosContent({
         role: editingUser.role,
         teamId: editingUser.teamId,
         isadmin: editingUser.role === "admin",
+        whatsapp: editingUser.whatsapp,
         admissionDate: editingUser.admissionDate,
         company: editingUser.company,
         contract: editingUser.contract,
@@ -4313,6 +4339,22 @@ function UsuariosContent({
                       </select>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">
+                      WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.whatsapp || ""}
+                      onChange={(e) =>
+                        setEditingUser({
+                          ...editingUser,
+                          whatsapp: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
@@ -4348,6 +4390,9 @@ function UsuariosContent({
                       E-mail
                     </th>
                     <th className="p-4 text-left text-xs font-bold text-slate-400 uppercase">
+                      WhatsApp
+                    </th>
+                    <th className="p-4 text-left text-xs font-bold text-slate-400 uppercase">
                       Senha Inicial
                     </th>
                     <th className="p-4 text-left text-xs font-bold text-slate-400 uppercase">
@@ -4375,6 +4420,9 @@ function UsuariosContent({
                       </td>
                       <td className="p-4 text-sm text-slate-600">
                         {user.email}
+                      </td>
+                      <td className="p-4 text-sm text-slate-600">
+                        {user.whatsapp || "---"}
                       </td>
                       <td className="p-4 text-sm font-mono text-slate-500">
                         {user.initialPassword || "---"}
@@ -4454,6 +4502,9 @@ function UsuariosContent({
                     <div>
                       <h3 className="font-bold text-slate-900">{user.name}</h3>
                       <p className="text-xs text-slate-500">{user.email}</p>
+                      {user.whatsapp && (
+                        <p className="text-[10px] text-emerald-600 font-bold mt-1">WhatsApp: {user.whatsapp}</p>
+                      )}
                     </div>
                     <span
                       className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${user.role === "admin" ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-blue-600"}`}
@@ -4980,7 +5031,8 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
-function getShiftColor(type: string) {
+function getShiftColor(type: string, customColor?: string) {
+  if (customColor && customColor.startsWith("bg-")) return customColor;
   switch (type) {
     case "MANHÃ":
       return "bg-blue-600";

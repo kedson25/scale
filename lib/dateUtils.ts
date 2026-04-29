@@ -1,10 +1,12 @@
+export const REFERENCE_MONDAY = new Date(2024, 11, 30, 0, 0, 0, 0); // Monday, Dec 30, 2024
+
 export const getWeeksInMonth = (year: number, month: number) => {
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
   
   // Find the first Monday on or before the 1st of the month
   const firstDayOfWeek = firstDayOfMonth.getDay();
-  const diffFirst = firstDayOfMonth.getDate() - firstDayOfWeek + (firstDayOfWeek === 0 ? -6 : 1);
+  const diffFirst = firstDayOfMonth.getDate() - (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1);
   const firstMonday = new Date(year, month, diffFirst);
 
   // Find the last Sunday on or after the last day of the month
@@ -18,17 +20,9 @@ export const getWeeksInMonth = (year: number, month: number) => {
 };
 
 export const getDaysForWeek = (weekNumber: number) => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  
-  const firstDayOfMonth = new Date(year, month, 1);
-  const dayOfWeek = firstDayOfMonth.getDay();
-  const diff = firstDayOfMonth.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-  const firstMonday = new Date(year, month, diff);
-
-  const targetMonday = new Date(firstMonday);
-  targetMonday.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
+  // weekNumber is now an absolute number of weeks since REFERENCE_MONDAY
+  const targetMonday = new Date(REFERENCE_MONDAY);
+  targetMonday.setDate(REFERENCE_MONDAY.getDate() + (weekNumber) * 7);
 
   const days = [];
   const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -47,18 +41,21 @@ export const getDaysForWeek = (weekNumber: number) => {
 
 export const getCurrentWeekNumber = () => {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
   
-  const firstDayOfMonth = new Date(year, month, 1);
-  const dayOfWeek = firstDayOfMonth.getDay();
-  const diff = firstDayOfMonth.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-  const firstMonday = new Date(year, month, diff);
+  // Find the Monday of the current week
+  const dayOfWeek = now.getDay();
+  const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const currentMonday = new Date(now);
+  currentMonday.setDate(now.getDate() + diffToMonday);
+  currentMonday.setHours(0, 0, 0, 0);
+
+  const diffTime = currentMonday.getTime() - REFERENCE_MONDAY.getTime();
+  const weeksPassed = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
   
-  const diffTime = now.getTime() - firstMonday.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
-  const weekNumber = Math.floor(diffDays / 7) + 1;
-  
-  const totalWeeks = Math.min(5, getWeeksInMonth(year, month));
-  return Math.max(1, Math.min(totalWeeks, weekNumber));
+  return weeksPassed;
+};
+
+export const getWeekLabel = (weekNumber: number) => {
+  const label = ((weekNumber % 5) + 5) % 5 + 1;
+  return label;
 };

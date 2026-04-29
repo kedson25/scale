@@ -17,7 +17,7 @@ export default function AdminHeader({ user, onMenuClick, hasUnread = false }: { 
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-10 px-6 py-4">
+    <header className="bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-50 px-6 py-4">
       <div className="flex items-center gap-4">
         <button 
           onClick={onMenuClick}

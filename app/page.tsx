@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import MobileNav from '@/components/MobileNav';
 import ProfilePictureUploader from '@/components/ProfilePictureUploader';
-import { getDaysForWeek, getCurrentWeekNumber, getWeeksInMonth } from '@/lib/dateUtils';
+import { getDaysForWeek, getCurrentWeekNumber, getWeeksInMonth, getWeekLabel } from '@/lib/dateUtils';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, signOut, updatePassword } from 'firebase/auth';
 import { scaleService, UserProfile, Team, Alert } from '@/lib/services/scaleService';
@@ -213,19 +213,23 @@ export default function MobileCollaboratorView() {
   })) : []), [user, currentDaysOfWeek]);
 
   const handlePrevWeek = () => {
-    setSelectedWeek(prev => prev > 1 ? prev - 1 : 5);
+    setSelectedWeek(prev => prev - 1);
   };
 
   const handleNextWeek = () => {
-    setSelectedWeek(prev => prev < 5 ? prev + 1 : 1);
+    setSelectedWeek(prev => prev + 1);
   };
 
   const nextDayOff = React.useMemo(() => {
     if (!user) return null;
     
-    // Check weeks 1 to 5 for the next day off starting from today
+    // Check current week and next 4 weeks (total 5 weeks in current cycle)
     const allDays: any[] = [];
-    for (let w = 1; w <= 5; w++) {
+    const currentWeekIdx = getCurrentWeekNumber();
+    const cycleStartIdx = Math.floor(currentWeekIdx / 5) * 5;
+
+    for (let i = 0; i < 10; i++) { // Check next 10 weeks to be safe
+      const w = cycleStartIdx + i;
       const weekDays = getDaysForWeek(w);
       allDays.push(...weekDays.map(d => ({ ...d, weekNumber: w })));
     }
@@ -318,7 +322,7 @@ export default function MobileCollaboratorView() {
           )}
 
           <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Semana {selectedWeek}</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Semana {getWeekLabel(selectedWeek)}</h2>
             <p className="text-slate-500 text-sm mb-4">
               {mounted ? `${currentDaysOfWeek[0].date} a ${currentDaysOfWeek[6].date} de ${currentMonth}` : 'Carregando...'}
             </p>
@@ -361,9 +365,9 @@ export default function MobileCollaboratorView() {
                       ? `${nextDayOff.allDaysInBlock[0].name} a ${nextDayOff.allDaysInBlock[nextDayOff.allDaysInBlock.length - 1].name}`
                       : nextDayOff.name}
                   </p>
-                  {(nextDayOff as any).weekNumber !== currentWeek && (
+                  {nextDayOff.weekNumber !== currentWeek && (
                     <span className="bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">
-                      Semana {(nextDayOff as any).weekNumber}
+                      Semana {getWeekLabel(nextDayOff.weekNumber)}
                     </span>
                   )}
                 </div>
@@ -568,25 +572,31 @@ export default function MobileCollaboratorView() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 hide-scrollbar snap-x">
-             {[1, 2, 3, 4, 5].map((w) => (
-                <button
-                  key={w}
-                  onClick={() => setSelectedWeek(w)}
-                  className={`flex-none snap-center px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all relative border ${
-                    selectedWeek === w
-                      ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20 scale-105"
-                      : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
-                  }`}
-                >
-                  S{w}
-                  {w === currentWeek && (
-                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                       <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500 border border-white"></span>
-                    </span>
-                  )}
-                </button>
-             ))}
+             {(() => {
+               const startWeek = Math.floor(selectedWeek / 5) * 5;
+               return [0, 1, 2, 3, 4].map((i) => {
+                 const w = startWeek + i;
+                 return (
+                   <button
+                     key={w}
+                     onClick={() => setSelectedWeek(w)}
+                     className={`flex-none snap-center px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all relative border ${
+                       selectedWeek === w
+                         ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20 scale-105"
+                         : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
+                     }`}
+                   >
+                     S{getWeekLabel(w)}
+                     {w === currentWeek && (
+                       <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500 border border-white"></span>
+                       </span>
+                     )}
+                   </button>
+                 );
+               });
+             })()}
              {/* Simple visual indicator of dates for the week */}
              <div className="flex-1 min-w-[12px]"></div>
              <div className="text-[10px] font-black text-slate-300 uppercase whitespace-nowrap bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
