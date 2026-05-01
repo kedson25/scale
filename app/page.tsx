@@ -649,6 +649,26 @@ export default function MobileCollaboratorView() {
               
               if (!shift) return null;
 
+              if (shift.type === 'VAZIO') {
+                return (
+                  <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm opacity-60">
+                    <div className="flex flex-col items-center min-w-[48px]">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">{day.name}</span>
+                      <span className="text-xl font-bold text-slate-500">{day.date}</span>
+                    </div>
+                    <div className="h-10 w-px bg-slate-200"></div>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 uppercase">
+                          Vazio
+                        </span>
+                        <p className="text-sm font-bold text-slate-500">Nenhum turno adicionado</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               if (shift.type === 'DSR') {
                 return (
                   <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-200 border border-emerald-400">

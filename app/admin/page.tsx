@@ -500,9 +500,15 @@ function DashboardContent({
   const [teams, setTeams] = React.useState<Team[]>([]);
   const [users, setUsers] = React.useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [rangeSelection, setRangeSelection] = React.useState<{
+    user: UserProfile;
+    startDayIdx: number;
+  } | null>(null);
   const [assigningShift, setAssigningShift] = React.useState<{
     user: UserProfile;
     day: any;
+    isRange?: boolean;
+    endDayIdx?: number;
   } | null>(null);
   const [isPublishing, setIsPublishing] = React.useState(false);
   const [selectedWeek, setSelectedWeek] = React.useState(
@@ -698,30 +704,54 @@ function DashboardContent({
     if (selectedWeek < currentWeekNum) {
       showNotification("Semanas anteriores não podem ser editadas", "warning");
       setAssigningShift(null);
+      setRangeSelection(null);
       return;
     }
-    const { user, day } = assigningShift;
+    const { user, day, isRange, endDayIdx } = assigningShift;
 
     try {
       const updatedShifts = { ...(user.shifts || {}) };
       const isRemoving = type === null;
 
-      if (isRemoving) {
-        delete updatedShifts[day.fullDate];
+      if (isRange && endDayIdx !== undefined) {
+        const startIdx = currentDaysOfWeek.findIndex(d => d.fullDate === day.fullDate);
+        const endIdx = endDayIdx;
+        const minIdx = Math.min(startIdx, endIdx);
+        const maxIdx = Math.max(startIdx, endIdx);
+
+        for (let i = minIdx; i <= maxIdx; i++) {
+          const targetDay = currentDaysOfWeek[i];
+          if (isRemoving) {
+            delete updatedShifts[targetDay.fullDate];
+          } else {
+            updatedShifts[targetDay.fullDate] = {
+              type,
+              startTime,
+              endTime,
+              color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
+              published: false,
+            };
+          }
+        }
       } else {
-        updatedShifts[day.fullDate] = {
-          type,
-          startTime,
-          endTime,
-          color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
-          published: false,
-        };
+        if (isRemoving) {
+          delete updatedShifts[day.fullDate];
+        } else {
+          updatedShifts[day.fullDate] = {
+            type,
+            startTime,
+            endTime,
+            color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
+            published: false,
+          };
+        }
       }
 
       await scaleService.updateUserProfile(user.uid, { shifts: updatedShifts });
 
       setAssigningShift(null);
-      showNotification("Turno atribuído com sucesso!", "success");
+      setRangeSelection(null);
+      showNotification(isRange ? "Intervalo preenchido com sucesso!" : "Turno atribuído com sucesso!", "success");
     } catch (error) {
       showNotification("Erro ao atribuir turno", "error");
     }
@@ -1372,43 +1402,56 @@ function DashboardContent({
                           const isToday = day.fullDate === todayIso;
                           const isPreviousWeek = selectedWeek < currentWeekNum;
 
+                          const isSelectedAsStart = rangeSelection?.user.uid === collab.uid && rangeSelection.startDayIdx === idx;
+
+                          const handleCellClick = (e: React.MouseEvent) => {
+                            if (isPreviousWeek) {
+                              showNotification(
+                                "Semanas anteriores não podem ser editadas",
+                                "warning",
+                              );
+                              return;
+                            }
+
+                            if (e.shiftKey) {
+                              if (!rangeSelection || rangeSelection.user.uid !== collab.uid) {
+                                setRangeSelection({ user: collab, startDayIdx: idx });
+                                showNotification("Início da seleção definido. Agora clique em outro dia para preencher o intervalo.", "info");
+                              } else {
+                                // Range completed
+                                const startDay = currentDaysOfWeek[rangeSelection.startDayIdx];
+                                setAssigningShift({ 
+                                  user: collab, 
+                                  day: startDay, 
+                                  isRange: true, 
+                                  endDayIdx: idx 
+                                });
+                              }
+                            } else {
+                              setRangeSelection(null);
+                              setAssigningShift({ user: collab, day });
+                            }
+                          };
+
                           return (
                             <td
                               key={day.fullDate}
-                              className={`p-2 relative ${isToday ? "bg-blue-50/30" : ""}`}
+                              className={`p-2 relative ${isToday ? "bg-blue-50/30" : ""} ${isSelectedAsStart ? "ring-2 ring-inset ring-amber-400 z-10" : ""}`}
                             >
                               {activeScaleType === "FOLGA" ? (
                                 shift ? (
                                   <button
-                                    onClick={() => {
-                                      if (isPreviousWeek) {
-                                        showNotification(
-                                          "Semanas anteriores não podem ser editadas",
-                                          "warning",
-                                        );
-                                        return;
-                                      }
-                                      setAssigningShift({ user: collab, day });
-                                    }}
-                                    className={`${getShiftColor(shift.type, shift.color)} text-white text-[10px] font-bold p-2.5 rounded-xl text-center shadow-sm w-full transition-transform hover:scale-105`}
+                                    onClick={handleCellClick}
+                                    className={`${getShiftColor(shift.type, shift.color)} ${shift.type === 'VAZIO' ? "text-slate-400 border border-slate-200" : "text-white shadow-sm border-transparent focus:ring-0"} text-[10px] font-bold p-2.5 rounded-xl text-center w-full transition-transform hover:scale-105`}
                                   >
-                                    {shift.type}
+                                    {shift.type === 'VAZIO' ? 'VAZIO' : shift.type}
                                     <br />
-                                    {shift.startTime} - {shift.endTime}
+                                    {shift.type === 'VAZIO' ? 'SEM ESCALA' : `${shift.startTime} - ${shift.endTime}`}
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => {
-                                      if (isPreviousWeek) {
-                                        showNotification(
-                                          "Semanas anteriores não podem ser editadas",
-                                          "warning",
-                                        );
-                                        return;
-                                      }
-                                      setAssigningShift({ user: collab, day });
-                                    }}
-                                    className="w-full bg-slate-50/50 border border-dashed border-slate-200 text-slate-300 text-[9px] font-bold py-3 rounded-xl text-center hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex flex-col items-center justify-center gap-1 group/btn"
+                                    onClick={handleCellClick}
+                                    className={`w-full bg-slate-50/50 border border-dashed border-slate-200 text-slate-300 text-[9px] font-bold py-3 rounded-xl text-center hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex flex-col items-center justify-center gap-1 group/btn`}
                                   >
                                     <div className="size-4 rounded-full border border-slate-200 flex items-center justify-center group-hover/btn:border-blue-200">
                                       <Plus size={10} />
@@ -1954,8 +1997,11 @@ function DashboardContent({
       {/* Modal Atribuir Turno */}
       <Modal
         isOpen={!!assigningShift}
-        onClose={() => setAssigningShift(null)}
-        title={`Atribuir Turno: ${assigningShift?.user.name}`}
+        onClose={() => {
+          setAssigningShift(null);
+          setRangeSelection(null);
+        }}
+        title={assigningShift?.isRange ? `Preencher Intervalo: ${assigningShift?.user.name}` : `Atribuir Turno: ${assigningShift?.user.name}`}
       >
         <div className="space-y-6">
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -1963,9 +2009,19 @@ function DashboardContent({
               <Calendar size={18} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Data da Escala</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                {assigningShift?.isRange ? "Período da Escala" : "Data da Escala"}
+              </p>
               <p className="text-sm font-bold text-slate-900 uppercase">
-                {assigningShift?.day.name}, {assigningShift?.day.date}
+                {assigningShift?.isRange ? (
+                  <>
+                    {assigningShift.day.name}, {assigningShift.day.date} 
+                    <span className="mx-2 text-slate-300 text-[10px]">até</span>
+                    {currentDaysOfWeek[assigningShift.endDayIdx!]?.name}, {currentDaysOfWeek[assigningShift.endDayIdx!]?.date}
+                  </>
+                ) : (
+                  <>{assigningShift?.day.name}, {assigningShift?.day.date}</>
+                )}
               </p>
             </div>
           </div>
@@ -1981,6 +2037,12 @@ function DashboardContent({
                 time="Dia Livre"
                 color="bg-green-600 text-white"
                 onClick={() => handleAssignShift("DSR", "-", "-", "bg-green-600")}
+              />
+              <ShiftOption
+                label="Vazio"
+                time="Sem escala"
+                color="bg-slate-200 text-slate-600"
+                onClick={() => handleAssignShift("VAZIO", "-", "-", "bg-slate-200")}
               />
               <ShiftOption
                 label="Falta"
@@ -5111,6 +5173,8 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 }
 
 function getShiftColor(type: string, customColor?: string) {
+  if (type === "VAZIO") return "bg-slate-50";
+
   // If it's a standard type with a default blue color, we override it with its standard color
   if (customColor === "bg-blue-500" && (type === "DSR" || type === "FALTA")) {
     return type === "DSR" ? "bg-green-600" : "bg-red-600";
