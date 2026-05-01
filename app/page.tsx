@@ -330,7 +330,7 @@ export default function MobileCollaboratorView() {
               onClick={() => setActiveTab('escala')}
               className="w-full py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
             >
-              Ver Escala Completa
+              Ver Escala Completa teste
             </button>
             {(user as any)?.defaultLunchTime && (
               <div className="mt-4 flex items-center justify-between p-3 bg-indigo-50 rounded-xl border border-indigo-100">
