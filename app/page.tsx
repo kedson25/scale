@@ -330,7 +330,7 @@ export default function MobileCollaboratorView() {
               onClick={() => setActiveTab('escala')}
               className="w-full py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
             >
-              Ver Escala Completa teste
+              Ver Escala Completa
             </button>
             {(user as any)?.defaultLunchTime && (
               <div className="mt-4 flex items-center justify-between p-3 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -651,19 +651,19 @@ export default function MobileCollaboratorView() {
 
               if (shift.type === 'DSR') {
                 return (
-                  <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                  <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-200 border border-emerald-400">
                     <div className="flex flex-col items-center min-w-[48px]">
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase">{day.name}</span>
-                      <span className="text-xl font-bold text-emerald-800">{day.date}</span>
+                      <span className="text-[10px] font-bold text-emerald-950 uppercase">{day.name}</span>
+                      <span className="text-xl font-bold text-emerald-950">{day.date}</span>
                     </div>
-                    <div className="h-10 w-px bg-emerald-200"></div>
+                    <div className="h-10 w-px bg-emerald-400"></div>
                     <div className="flex-1 flex items-center gap-2">
-                      <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
+                      <div className="p-2 bg-emerald-300 rounded-lg text-emerald-950">
                         <CalendarOff size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">Folga (DSR)</p>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase">Descanso Semanal</p>
+                        <p className="text-sm font-black text-emerald-950 uppercase tracking-tight">Folga (DSR)</p>
+                        <p className="text-[10px] font-bold text-emerald-900 uppercase">Descanso Semanal</p>
                       </div>
                     </div>
                   </div>

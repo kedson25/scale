@@ -14,6 +14,7 @@ import {
   Search,
   Plus,
   Filter,
+  Calendar,
   BarChart3,
   Settings,
   LayoutDashboard,
@@ -176,6 +177,7 @@ function AdminDashboardContent() {
           <EquipesContent
             showNotification={showNotification}
             adminUid={adminProfile.uid}
+            isadmin={adminProfile.isadmin}
           />
         );
       case "postos":
@@ -223,6 +225,7 @@ function AdminDashboardContent() {
           <DashboardContent
             showNotification={showNotification}
             adminUid={adminProfile.uid}
+            isadmin={adminProfile.isadmin}
           />
         );
     }
@@ -483,9 +486,11 @@ export default function AdminDashboard() {
 function DashboardContent({
   showNotification,
   adminUid,
+  isadmin,
 }: {
   showNotification: any;
   adminUid: string;
+  isadmin?: boolean;
 }) {
   const [activeGroup, setActiveGroup] = React.useState("TODOS");
   const [activeScaleType, setActiveScaleType] = React.useState<
@@ -596,6 +601,16 @@ function DashboardContent({
   const filteredCollaborators = React.useMemo(() => {
     return users
       .filter((user) => {
+        // Se não for super-admin, só vê colaboradores de equipes onde é líder ou admin
+        const team = teams.find(t => t.id === user.teamId);
+        const hasAccessToTeam = isadmin || (team && (
+          team.leaderId === adminUid || 
+          team.ownerId === adminUid || 
+          (team.sharedWith && team.sharedWith.includes(adminUid))
+        ));
+
+        if (!hasAccessToTeam) return false;
+
         const matchesGroup =
           activeGroup === "TODOS" || user.teamId === activeGroup;
         const matchesSearch = user.name
@@ -613,7 +628,7 @@ function DashboardContent({
         if (rankA !== rankB) return rankA - rankB;
         return a.name.localeCompare(b.name);
       });
-  }, [users, activeGroup, searchTerm, teams]);
+  }, [users, activeGroup, searchTerm, teams, adminUid, isadmin]);
 
   const dailyCounts = React.useMemo(() => {
     return allWeeksDays.map((day) => {
@@ -698,7 +713,7 @@ function DashboardContent({
           type,
           startTime,
           endTime,
-          color: color || "bg-blue-500",
+          color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
           published: false,
         };
       }
@@ -853,8 +868,9 @@ function DashboardContent({
             offDaysMessagePush = ` Suas próximas folgas são: ${offDaysPush.join(", ")}.`;
           }
 
-      const dbMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${offDaysMessageDB}`;
-      const pushMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${offDaysMessagePush}`;
+          const lunchMessage = user.defaultLunchTime ? ` Seu horário de almoço é: ${user.defaultLunchTime}.` : "";
+          const dbMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${lunchMessage}${offDaysMessageDB}`;
+          const pushMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${lunchMessage}${offDaysMessagePush}`;
 
           await scaleService.createAlert({
             title: "Escala Atualizada 📅",
@@ -1122,7 +1138,14 @@ function DashboardContent({
                 >
                   Todos
                 </button>
-                {teams.map((team) => (
+                {teams
+                  .filter(team => 
+                    isadmin || 
+                    team.leaderId === adminUid || 
+                    (team.sharedWith && team.sharedWith.includes(adminUid)) ||
+                    team.ownerId === adminUid
+                  )
+                  .map((team) => (
                   <button
                     key={team.id}
                     onClick={() => setActiveGroup(team.id!)}
@@ -1463,28 +1486,28 @@ function DashboardContent({
                             const isWork = shift && !isDSR && !isFalta;
 
                             const bgColor = isDSR
-                              ? "bg-green-50"
+                              ? "bg-green-600 text-white"
                               : isFalta
                                 ? "bg-red-50"
                                 : isWork
                                   ? "bg-blue-50/50"
                                   : "bg-slate-50";
                             const borderColor = isDSR
-                              ? "border-green-100"
+                              ? "border-green-700"
                               : isFalta
                                 ? "border-red-100"
                                 : isWork
                                   ? "border-blue-100/50"
                                   : "border-slate-100";
                             const textColor = isDSR
-                              ? "text-green-600"
+                              ? "text-white"
                               : isFalta
                                 ? "text-red-600"
                                 : isWork
                                   ? "text-blue-600"
                                   : "text-slate-400";
                             const textBoldColor = isDSR
-                              ? "text-green-700"
+                              ? "text-white"
                               : isFalta
                                 ? "text-red-700"
                                 : isWork
@@ -1817,28 +1840,28 @@ function DashboardContent({
                             const isWork = shift && !isDSR && !isFalta;
 
                             const bgColor = isDSR
-                              ? "bg-green-50"
+                              ? "bg-green-600 text-white"
                               : isFalta
                                 ? "bg-red-50"
                                 : isWork
                                   ? "bg-blue-50/50"
                                   : "bg-slate-50";
                             const borderColor = isDSR
-                              ? "border-green-100"
+                              ? "border-green-700"
                               : isFalta
                                 ? "border-red-100"
                                 : isWork
                                   ? "border-blue-100/50"
                                   : "border-slate-100";
                             const textColor = isDSR
-                              ? "text-green-600"
+                              ? "text-white"
                               : isFalta
                                 ? "text-red-600"
                                 : isWork
                                   ? "text-blue-600"
                                   : "text-slate-400";
                             const textBoldColor = isDSR
-                              ? "text-green-700"
+                              ? "text-white"
                               : isFalta
                                 ? "text-red-700"
                                 : isWork
@@ -1935,40 +1958,51 @@ function DashboardContent({
         title={`Atribuir Turno: ${assigningShift?.user.name}`}
       >
         <div className="space-y-6">
-          <p className="text-sm text-slate-500">
-            Selecione o turno para o dia{" "}
-            <span className="font-bold text-slate-900">
-              {assigningShift?.day.name}, {assigningShift?.day.date}
-            </span>
-          </p>
+          <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
+              <Calendar size={18} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Data da Escala</p>
+              <p className="text-sm font-bold text-slate-900 uppercase">
+                {assigningShift?.day.name}, {assigningShift?.day.date}
+              </p>
+            </div>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ShiftOption
-              label="Folga (DSR)"
-              time="Dia Livre"
-              color="bg-slate-200 !text-slate-600"
-              onClick={() => handleAssignShift("DSR", "-", "-")}
-            />
-            <ShiftOption
-              label="Falta"
-              time="Ausência"
-              color="bg-red-500"
-              onClick={() => handleAssignShift("FALTA", "-", "-")}
-            />
-            <ShiftOption
-              label="Limpar Turno"
-              time="Remover registro"
-              color="bg-slate-500"
-              onClick={() => handleAssignShift(null, "-", "-")}
-            />
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Clock size={16} />
+              Turnos Padrão
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ShiftOption
+                label="Folga (DSR)"
+                time="Dia Livre"
+                color="bg-green-600 text-white"
+                onClick={() => handleAssignShift("DSR", "-", "-", "bg-green-600")}
+              />
+              <ShiftOption
+                label="Falta"
+                time="Ausência"
+                color="bg-red-500"
+                onClick={() => handleAssignShift("FALTA", "-", "-", "bg-red-600")}
+              />
+              <ShiftOption
+                label="Limpar Turno"
+                time="Remover registro"
+                color="bg-slate-500"
+                onClick={() => handleAssignShift(null, "-", "-")}
+              />
+            </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-slate-900 mb-3">
+            <h4 className="text-sm font-bold text-slate-900 mb-4">
               Horários Salvos
             </h4>
             {savedCustomShifts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {savedCustomShifts.map((shift, idx) => (
                   <div key={idx} className="relative group">
                     <ShiftOption
@@ -1986,7 +2020,7 @@ function DashboardContent({
                     />
                     <button
                       onClick={() => handleRemoveCustomShift(idx)}
-                      className="absolute top-1 right-1 bg-red-100 text-red-600 rounded-none p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-red-200"
+                      className="absolute -top-1 -right-1 bg-white text-red-600 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg border border-red-100 z-10 hover:bg-red-50"
                       title="Remover Turno Salvo"
                     >
                       <X size={14} />
@@ -1995,93 +2029,99 @@ function DashboardContent({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 italic mb-4">
+              <p className="text-xs text-slate-400 italic mb-6">
                 Nenhum horário personalizado salvo.
               </p>
             )}
 
-            <h4 className="text-sm font-bold text-slate-900 mb-3">
-              Criar Novo Horário Personalizado
-            </h4>
-            {/* Color Selector */}
-            <div className="mb-4">
-              <label className="text-xs font-bold text-slate-400 uppercase">Cor do Turno</label>
-              <div className="flex gap-2 mt-2">
-                {["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500"].map(c => (
-                  <button key={c} type="button" className={`w-8 h-8 rounded-full ${c} ${selectedCustomColor === c ? 'ring-2 ring-offset-2 ring-slate-400' : ''}`} onClick={() => setSelectedCustomColor(c)} />
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase">
-                  Nome do Turno
-                </label>
-                <input
-                  type="text"
-                  id="custom-name"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-none p-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                  placeholder="Ex: Madrugada, Extra, Backup..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase">
-                    Início
-                  </label>
-                  <input
-                    type="time"
-                    id="custom-start"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-none p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase">
-                    Fim
-                  </label>
-                  <input
-                    type="time"
-                    id="custom-end"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-none p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  />
+            <div className="bg-blue-50/30 p-5 rounded-2xl border border-blue-100/50">
+              <h4 className="text-sm font-bold text-blue-900 mb-4 flex items-center gap-2">
+                <Plus size={16} />
+                Criar Novo Horário
+              </h4>
+              
+              {/* Color Selector */}
+              <div className="mb-5">
+                <label className="text-[10px] font-black text-blue-600/60 uppercase tracking-wider">Cor do Turno</label>
+                <div className="flex gap-3 mt-2">
+                  {["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500"].map(c => (
+                    <button key={c} type="button" className={`w-9 h-9 rounded-full ${c} ${selectedCustomColor === c ? 'ring-4 ring-blue-100 ring-offset-2' : 'hover:scale-110'} transition-all`} onClick={() => setSelectedCustomColor(c)} />
+                  ))}
                 </div>
               </div>
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => {
-                  const name =
-                    (document.getElementById("custom-name") as HTMLInputElement)
-                      .value || "PERSONALIZADO";
-                  const start = (
-                    document.getElementById("custom-start") as HTMLInputElement
-                  ).value;
-                  const end = (
-                    document.getElementById("custom-end") as HTMLInputElement
-                  ).value;
-                  handleSaveCustomShift(name, start, end, selectedCustomColor);
-                }}
-                className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-none font-bold hover:bg-slate-200 transition-all"
-              >
-                Salvar
-              </button>
-              <button
-                onClick={() => {
-                  const name =
-                    (document.getElementById("custom-name") as HTMLInputElement)
-                      .value || "PERSONALIZADO";
-                  const start = (
-                    document.getElementById("custom-start") as HTMLInputElement
-                  ).value;
-                  const end = (
-                    document.getElementById("custom-end") as HTMLInputElement
-                  ).value;
-                  handleAssignShift(name.toUpperCase(), start, end, selectedCustomColor);
-                }}
-                className="flex-[2] py-3 bg-blue-600 text-white rounded-none font-bold hover:bg-blue-700 transition-all"
-              >
-                Aplicar Horário
-              </button>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-blue-600/60 uppercase tracking-wider">
+                    Nome do Turno
+                  </label>
+                  <input
+                    type="text"
+                    id="custom-name"
+                    className="w-full bg-white border border-blue-100 rounded-xl p-3 text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                    placeholder="Ex: Madrugada, Extra, Backup..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-blue-600/60 uppercase tracking-wider">
+                      Início
+                    </label>
+                    <input
+                      type="time"
+                      id="custom-start"
+                      className="w-full bg-white border border-blue-100 rounded-xl p-3 text-sm outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-blue-600/60 uppercase tracking-wider">
+                      Fim
+                    </label>
+                    <input
+                      type="time"
+                      id="custom-end"
+                      className="w-full bg-white border border-blue-100 rounded-xl p-3 text-sm outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    const name =
+                      (document.getElementById("custom-name") as HTMLInputElement)
+                        .value || "PERSONALIZADO";
+                    const start = (
+                      document.getElementById("custom-start") as HTMLInputElement
+                    ).value;
+                    const end = (
+                      document.getElementById("custom-end") as HTMLInputElement
+                    ).value;
+                    handleSaveCustomShift(name, start, end, selectedCustomColor);
+                  }}
+                  className="flex-1 py-3 bg-white text-blue-600 border border-blue-100 rounded-xl font-bold hover:bg-blue-50 transition-all"
+                >
+                  Salvar
+                </button>
+                <button
+                  onClick={() => {
+                    const name =
+                      (document.getElementById("custom-name") as HTMLInputElement)
+                        .value || "PERSONALIZADO";
+                    const start = (
+                      document.getElementById("custom-start") as HTMLInputElement
+                    ).value;
+                    const end = (
+                      document.getElementById("custom-end") as HTMLInputElement
+                    ).value;
+                    handleAssignShift(name.toUpperCase(), start, end, selectedCustomColor);
+                  }}
+                  className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+                >
+                  Atribuir Agora
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2181,7 +2221,7 @@ function DashboardContent({
                                 {shift ? (
                                   <div className={`flex flex-col items-center justify-center p-2 rounded transition-all w-full min-h-[50px] border ${
                                     shift.type === 'DSR' 
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm" 
+                                      ? "bg-green-600 border-green-700 text-white shadow-sm" 
                                       : shift.type === 'FOLGA' 
                                         ? "bg-slate-50 border-slate-200 text-slate-500" 
                                         : `${shift.color || 'bg-blue-500'} text-white shadow-sm border-transparent`
@@ -2278,9 +2318,11 @@ function Modal({
 function EquipesContent({
   showNotification,
   adminUid,
+  isadmin,
 }: {
   showNotification: any;
   adminUid: string;
+  isadmin?: boolean;
 }) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [teams, setTeams] = React.useState<Team[]>([]);
@@ -2636,78 +2678,115 @@ function EquipesContent({
                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                       {users
                         .filter((u) => u.teamId === editingTeam.id)
-                        .map((member) => (
-                          <div
-                            key={member.uid}
-                            className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
-                                {getInitials(member.name)}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-900 flex items-center gap-1">
-                                  {member.name}
-                                  {editingTeam.leaderId === member.uid && (
-                                    <span title="Líder da Equipe">
-                                      <Crown
-                                        size={12}
-                                        className="text-amber-500"
-                                      />
+                        .sort((a, b) => {
+                          const aIsLeader = a.uid === editingTeam.leaderId;
+                          const bIsLeader = b.uid === editingTeam.leaderId;
+                          const aIsAdmin = a.role === "admin" || a.isadmin || (editingTeam.sharedWith && editingTeam.sharedWith.includes(a.uid));
+                          const bIsAdmin = b.role === "admin" || b.isadmin || (editingTeam.sharedWith && editingTeam.sharedWith.includes(b.uid));
+
+                          if (aIsLeader && !bIsLeader) return -1;
+                          if (!aIsLeader && bIsLeader) return 1;
+                          if (aIsAdmin && !bIsAdmin) return -1;
+                          if (!aIsAdmin && bIsAdmin) return 1;
+                          return a.name.localeCompare(b.name);
+                        })
+                        .map((member) => {
+                          const isLeader = member.uid === editingTeam.leaderId;
+                          const isAdminOfTeam = (member.role === "admin" || member.isadmin || (editingTeam.sharedWith && editingTeam.sharedWith.includes(member.uid)));
+                          
+                          return (
+                            <div
+                              key={member.uid}
+                              className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                                  {getInitials(member.name)}
+                                </div>
+                                <div className="flex flex-col">
+                                  <p className="text-sm font-bold text-slate-900 flex items-center gap-1">
+                                    {member.name}
+                                    {isLeader && (
+                                      <span title="Líder Principal">
+                                        <Crown size={12} className="text-amber-500" />
+                                      </span>
+                                    )}
+                                  </p>
+                                  <div className="flex gap-1">
+                                    <span className="text-[10px] text-slate-500 uppercase font-medium">
+                                      {member.role === "admin" || member.isadmin ? "Administrador" : "Colaborador"}
                                     </span>
-                                  )}
-                                </p>
-                                <p className="text-[10px] text-slate-500">
-                                  {member.role}
-                                </p>
+                                    {!isLeader && isAdminOfTeam && (
+                                      <span className="text-[10px] text-blue-600 uppercase font-black">
+                                        • Líder
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const isCurrentlyAdmin = member.isadmin || member.role === 'admin';
+                                      await scaleService.updateUserProfile(member.uid, { 
+                                        role: isCurrentlyAdmin ? 'collaborator' : 'admin',
+                                        isadmin: !isCurrentlyAdmin 
+                                      });
+                                      
+                                      const currentSharedWith = editingTeam.sharedWith || [];
+                                      let newSharedWith = [...currentSharedWith];
+                                      
+                                      if (!isCurrentlyAdmin) {
+                                        if (!newSharedWith.includes(member.uid)) {
+                                          newSharedWith.push(member.uid);
+                                        }
+                                      } else {
+                                        newSharedWith = newSharedWith.filter(id => id !== member.uid);
+                                      }
+                                      
+                                      await scaleService.updateTeam(editingTeam.id!, { 
+                                        sharedWith: newSharedWith 
+                                      });
+                                      
+                                      showNotification(isCurrentlyAdmin ? "Acesso de líder removido" : "Usuário promovido a líder da equipe!");
+                                    } catch (e) {
+                                      showNotification("Erro ao atualizar", "error");
+                                    }
+                                  }}
+                                  className={`p-2 rounded-lg transition-colors ${isAdminOfTeam ? "text-blue-600 bg-blue-50" : "text-slate-400 hover:bg-slate-200"}`}
+                                  title={isAdminOfTeam ? "Remover admin/líder" : "Tornar Líder/Admin"}
+                                >
+                                  <Shield size={18} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditingTeam({
+                                      ...editingTeam,
+                                      leaderId: member.uid,
+                                    })
+                                  }
+                                  className={`p-2 rounded-lg transition-colors ${editingTeam.leaderId === member.uid ? "text-amber-500 bg-amber-50" : "text-slate-400 hover:bg-slate-200"}`}
+                                  title="Definir como líder principal"
+                                >
+                                  <Crown size={18} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoveUserFromTeam(member.uid)
+                                  }
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Remover da equipe"
+                                >
+                                  <UserMinus size={18} />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    const isCurrentlyAdmin = member.isadmin || member.role === 'admin';
-                                    await scaleService.updateUserProfile(member.uid, { 
-                                      role: isCurrentlyAdmin ? 'collaborator' : 'admin',
-                                      isadmin: !isCurrentlyAdmin 
-                                    });
-                                    showNotification(isCurrentlyAdmin ? "Acesso de admin removido" : "Usuário promovido a admin da equipe!");
-                                  } catch (e) {
-                                    showNotification("Erro ao atualizar perfil", "error");
-                                  }
-                                }}
-                                className={`p-2 rounded-lg transition-colors ${member.isadmin || member.role === 'admin' ? "text-blue-600 bg-blue-50" : "text-slate-400 hover:bg-slate-200"}`}
-                                title={member.isadmin || member.role === 'admin' ? "Remover admin" : "Promover a Admin"}
-                              >
-                                <Shield size={18} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setEditingTeam({
-                                    ...editingTeam,
-                                    leaderId: member.uid,
-                                  })
-                                }
-                                className={`p-2 rounded-lg transition-colors ${editingTeam.leaderId === member.uid ? "text-amber-500 bg-amber-50" : "text-slate-400 hover:bg-slate-200"}`}
-                                title="Definir como líder"
-                              >
-                                <Crown size={18} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleRemoveUserFromTeam(member.uid)
-                                }
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Remover da equipe"
-                              >
-                                <UserMinus size={18} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       {users.filter((u) => u.teamId === editingTeam.id)
                         .length === 0 && (
                         <p className="text-xs text-slate-400 italic text-center py-8">
@@ -2805,7 +2884,7 @@ function EquipesContent({
                 </p>
               </div>
 
-              {editingTeam.ownerId === currentUser?.uid && (
+              {(editingTeam.ownerId === currentUser?.uid || isadmin) && (
                 <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4 transition-colors">
                   <div className="flex items-center gap-2 text-red-700">
                     <Trash2 size={20} />
@@ -3041,7 +3120,7 @@ function EquipesContent({
                 >
                   <Edit size={18} />
                 </button>
-                {team.ownerId === currentUser?.uid && (
+                {(team.ownerId === currentUser?.uid || isadmin) && (
                   <button
                     onClick={() => handleDeleteTeam(team.id!)}
                     className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
@@ -5032,6 +5111,10 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 }
 
 function getShiftColor(type: string, customColor?: string) {
+  // If it's a standard type with a default blue color, we override it with its standard color
+  if (customColor === "bg-blue-500" && (type === "DSR" || type === "FALTA")) {
+    return type === "DSR" ? "bg-green-600" : "bg-red-600";
+  }
   if (customColor && customColor.startsWith("bg-")) return customColor;
   switch (type) {
     case "MANHÃ":
@@ -5088,25 +5171,25 @@ function LunchManager({
       return;
     }
     setIsPublishing(true);
+    let notifiedCount = 0;
     try {
       const usersWithLunch = users.filter((u) => u.defaultLunchTime);
       for (const u of usersWithLunch) {
-        await notifyUser(
-          u,
-          "Horário de Almoço Atualizado",
-          `Seu novo horário de almoço é: ${u.defaultLunchTime}`,
-        );
-        await scaleService.createAlert({
-          title: "Horário de Almoço Atualizado",
-          message: `Seu novo horário de almoço é: ${u.defaultLunchTime}`,
-          targetAudience: "user",
-          targetId: u.uid,
-          priority: "Informativo",
-          createdBy: auth.currentUser?.uid || "admin",
-        });
+        try {
+          await notifyUser(
+            u,
+            "Horário de Almoço Atualizado 🍽️",
+            `Atenção! Seu novo horário de almoço foi definido para: ${u.defaultLunchTime}.`,
+          );
+          notifiedCount++;
+        } catch (err) {
+          // If one fails, continue to others
+        }
       }
       showNotification(
-        "Horários publicados e usuários notificados!",
+        notifiedCount > 0 
+          ? `${notifiedCount} usuários notificados sobre seus horários de almoço!` 
+          : "Nenhum horário de almoço para publicar.",
         "success",
       );
     } catch (e) {
