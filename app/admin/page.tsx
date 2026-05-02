@@ -121,13 +121,11 @@ function AdminDashboardContent() {
                 router.push("/");
                 return;
               }
-              if (!profile.termsAccepted) {
-                setShowTermsModal(true);
-              }
+              setShowTermsModal(profile.termsAccepted !== true);
               setAdminProfile(profile);
               setLoading(false);
             } else {
-              // Profile not found - might be redirected or error
+              // Profile not found
             }
           },
         );

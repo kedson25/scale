@@ -115,13 +115,13 @@ export default function MobileCollaboratorView() {
       try {
         const unsubUser = scaleService.subscribeToUserProfile(user.uid, (profile) => {
           if (profile) {
+            // Show terms if not accepted
+            const shouldShowTerms = profile.termsAccepted !== true;
+            setShowTermsModal(shouldShowTerms);
+
             setUserProfile(prev => {
               if (prev === null) {
-                // First load
-                if (!profile.termsAccepted) {
-                  setShowTermsModal(true);
-                }
-
+                // First load specific logic
                 if (!profile.whatsapp) {
                   setShowWhatsAppModal(true);
                 }

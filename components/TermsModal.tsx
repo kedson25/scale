@@ -35,7 +35,7 @@ export default function TermsModal({ isOpen, onAccept, userId }: TermsModalProps
     setIsUpdating(true);
     try {
       const db = getDb();
-      const userRef = doc(db, 'users', userId);
+      const userRef = doc(db, 'scale', `user_${userId}`);
       await setDoc(userRef, {
         termsAccepted: true,
         termsAcceptedAt: new Date().toISOString()
