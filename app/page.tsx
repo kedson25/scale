@@ -30,6 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import MobileNav from '@/components/MobileNav';
 import ProfilePictureUploader from '@/components/ProfilePictureUploader';
+import TermsModal from '@/components/TermsModal';
 import { getDaysForWeek, getCurrentWeekNumber, getWeeksInMonth, getWeekLabel } from '@/lib/dateUtils';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, signOut, updatePassword } from 'firebase/auth';
@@ -54,6 +55,7 @@ export default function MobileCollaboratorView() {
   const currentWeek = React.useMemo(() => getCurrentWeekNumber(), []);
   const [activeTab, setActiveTab] = React.useState<'home' | 'escala' | 'avisos' | 'perfil'>('home');
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
+  const [showTermsModal, setShowTermsModal] = React.useState(false);
   const [showPasswordModal, setShowPasswordModal] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [newPassword, setNewPassword] = React.useState('');
@@ -116,6 +118,10 @@ export default function MobileCollaboratorView() {
             setUserProfile(prev => {
               if (prev === null) {
                 // First load
+                if (!profile.termsAccepted) {
+                  setShowTermsModal(true);
+                }
+
                 if (!profile.whatsapp) {
                   setShowWhatsAppModal(true);
                 }
@@ -573,8 +579,8 @@ export default function MobileCollaboratorView() {
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 hide-scrollbar snap-x">
              {(() => {
-               const startWeek = Math.floor(selectedWeek / 5) * 5;
-               return [0, 1, 2, 3, 4].map((i) => {
+               const startWeek = Math.floor(selectedWeek / 15) * 15;
+               return Array.from({ length: 15 }, (_, i) => {
                  const w = startWeek + i;
                  return (
                    <button
@@ -765,6 +771,13 @@ export default function MobileCollaboratorView() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col bg-slate-50 overflow-x-hidden sm:max-w-md sm:mx-auto sm:border-x border-slate-200 transition-colors">
+      {userProfile && (
+        <TermsModal 
+          isOpen={showTermsModal} 
+          userId={userProfile.uid} 
+          onAccept={() => setShowTermsModal(false)} 
+        />
+      )}
       
       {showWhatsAppModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">

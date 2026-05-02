@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
+import TermsModal from "@/components/TermsModal";
 import { getDaysForWeek, getCurrentWeekNumber, getWeekLabel, REFERENCE_MONDAY } from "@/lib/dateUtils";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getDb, auth, secondaryAuth } from "@/lib/firebase";
@@ -68,6 +69,7 @@ function AdminDashboardContent() {
   >(undefined);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+  const [showTermsModal, setShowTermsModal] = React.useState(false);
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [notification, setNotification] = React.useState<{
     message: string;
@@ -118,6 +120,9 @@ function AdminDashboardContent() {
               if (profile.isadmin !== true) {
                 router.push("/");
                 return;
+              }
+              if (!profile.termsAccepted) {
+                setShowTermsModal(true);
               }
               setAdminProfile(profile);
               setLoading(false);
@@ -233,6 +238,13 @@ function AdminDashboardContent() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden transition-colors">
+      {adminProfile && (
+        <TermsModal 
+          isOpen={showTermsModal} 
+          userId={adminProfile.uid} 
+          onAccept={() => setShowTermsModal(false)} 
+        />
+      )}
       <AnimatePresence>
         {notification && (
           <motion.div
@@ -500,15 +512,9 @@ function DashboardContent({
   const [teams, setTeams] = React.useState<Team[]>([]);
   const [users, setUsers] = React.useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [rangeSelection, setRangeSelection] = React.useState<{
-    user: UserProfile;
-    startDayIdx: number;
-  } | null>(null);
   const [assigningShift, setAssigningShift] = React.useState<{
     user: UserProfile;
     day: any;
-    isRange?: boolean;
-    endDayIdx?: number;
   } | null>(null);
   const [isPublishing, setIsPublishing] = React.useState(false);
   const [selectedWeek, setSelectedWeek] = React.useState(
@@ -530,8 +536,8 @@ function DashboardContent({
   const currentWeekNum = React.useMemo(() => getCurrentWeekNumber(), []);
   const currentWeeksData = React.useMemo(() => {
     const weeks = [];
-    const baseWeek = Math.floor(currentWeekNum / 5) * 5;
-    for (let i = 0; i < 5; i++) {
+    const baseWeek = Math.floor(currentWeekNum / 15) * 15;
+    for (let i = 0; i < 15; i++) {
       const w = baseWeek + i;
       weeks.push({
         weekNum: w,
@@ -542,7 +548,7 @@ function DashboardContent({
   }, [currentWeekNum]);
 
   const allWeeksDays = React.useMemo(() => {
-    return currentWeeksData.flatMap(w => w.days);
+    return currentWeeksData.flatMap(w => w.days.map(d => ({ ...d, absoluteWeek: w.weekNum })));
   }, [currentWeeksData]);
 
   const currentDaysOfWeek = React.useMemo(
@@ -704,54 +710,30 @@ function DashboardContent({
     if (selectedWeek < currentWeekNum) {
       showNotification("Semanas anteriores não podem ser editadas", "warning");
       setAssigningShift(null);
-      setRangeSelection(null);
       return;
     }
-    const { user, day, isRange, endDayIdx } = assigningShift;
+    const { user, day } = assigningShift;
 
     try {
       const updatedShifts = { ...(user.shifts || {}) };
       const isRemoving = type === null;
 
-      if (isRange && endDayIdx !== undefined) {
-        const startIdx = currentDaysOfWeek.findIndex(d => d.fullDate === day.fullDate);
-        const endIdx = endDayIdx;
-        const minIdx = Math.min(startIdx, endIdx);
-        const maxIdx = Math.max(startIdx, endIdx);
-
-        for (let i = minIdx; i <= maxIdx; i++) {
-          const targetDay = currentDaysOfWeek[i];
-          if (isRemoving) {
-            delete updatedShifts[targetDay.fullDate];
-          } else {
-            updatedShifts[targetDay.fullDate] = {
-              type,
-              startTime,
-              endTime,
-              color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
-              published: false,
-            };
-          }
-        }
+      if (isRemoving) {
+        delete updatedShifts[day.fullDate];
       } else {
-        if (isRemoving) {
-          delete updatedShifts[day.fullDate];
-        } else {
-          updatedShifts[day.fullDate] = {
-            type,
-            startTime,
-            endTime,
-            color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
-            published: false,
-          };
-        }
+        updatedShifts[day.fullDate] = {
+          type,
+          startTime,
+          endTime,
+          color: color || (type === "DSR" ? "bg-green-600" : type === "FALTA" ? "bg-red-600" : "bg-blue-500"),
+          published: false,
+        };
       }
 
       await scaleService.updateUserProfile(user.uid, { shifts: updatedShifts });
 
       setAssigningShift(null);
-      setRangeSelection(null);
-      showNotification(isRange ? "Intervalo preenchido com sucesso!" : "Turno atribuído com sucesso!", "success");
+      showNotification("Turno atribuído com sucesso!", "success");
     } catch (error) {
       showNotification("Erro ao atribuir turno", "error");
     }
@@ -1232,8 +1214,8 @@ function DashboardContent({
                 </div>
                 <div className="flex bg-slate-100/80 p-1.5 rounded-2xl overflow-x-auto border border-slate-200/60 shadow-inner max-w-full relative hide-scrollbar">
                   {(() => {
-                    const startWeek = Math.floor(selectedWeek / 5) * 5;
-                    return [0, 1, 2, 3, 4].map((i) => {
+                    const startWeek = Math.floor(selectedWeek / 15) * 15;
+                    return Array.from({ length: 15 }, (_, i) => {
                       const weekIdx = startWeek + i;
                       return (
                         <button
@@ -1245,7 +1227,7 @@ function DashboardContent({
                               : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 z-0"
                           }`}
                         >
-                          Semana {getWeekLabel(weekIdx)}
+                          S{getWeekLabel(weekIdx)}
                           {weekIdx === currentWeekNum && (
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -1402,46 +1384,24 @@ function DashboardContent({
                           const isToday = day.fullDate === todayIso;
                           const isPreviousWeek = selectedWeek < currentWeekNum;
 
-                          const isSelectedAsStart = rangeSelection?.user.uid === collab.uid && rangeSelection.startDayIdx === idx;
-
-                          const handleCellClick = (e: React.MouseEvent) => {
-                            if (isPreviousWeek) {
-                              showNotification(
-                                "Semanas anteriores não podem ser editadas",
-                                "warning",
-                              );
-                              return;
-                            }
-
-                            if (e.shiftKey) {
-                              if (!rangeSelection || rangeSelection.user.uid !== collab.uid) {
-                                setRangeSelection({ user: collab, startDayIdx: idx });
-                                showNotification("Início da seleção definido. Agora clique em outro dia para preencher o intervalo.", "info");
-                              } else {
-                                // Range completed
-                                const startDay = currentDaysOfWeek[rangeSelection.startDayIdx];
-                                setAssigningShift({ 
-                                  user: collab, 
-                                  day: startDay, 
-                                  isRange: true, 
-                                  endDayIdx: idx 
-                                });
-                              }
-                            } else {
-                              setRangeSelection(null);
-                              setAssigningShift({ user: collab, day });
-                            }
-                          };
-
                           return (
                             <td
                               key={day.fullDate}
-                              className={`p-2 relative ${isToday ? "bg-blue-50/30" : ""} ${isSelectedAsStart ? "ring-2 ring-inset ring-amber-400 z-10" : ""}`}
+                              className={`p-2 relative ${isToday ? "bg-blue-50/30" : ""}`}
                             >
                               {activeScaleType === "FOLGA" ? (
                                 shift ? (
                                   <button
-                                    onClick={handleCellClick}
+                                    onClick={() => {
+                                      if (isPreviousWeek) {
+                                        showNotification(
+                                          "Semanas anteriores não podem ser editadas",
+                                          "warning",
+                                        );
+                                        return;
+                                      }
+                                      setAssigningShift({ user: collab, day });
+                                    }}
                                     className={`${getShiftColor(shift.type, shift.color)} ${shift.type === 'VAZIO' ? "text-slate-400 border border-slate-200" : "text-white shadow-sm border-transparent focus:ring-0"} text-[10px] font-bold p-2.5 rounded-xl text-center w-full transition-transform hover:scale-105`}
                                   >
                                     {shift.type === 'VAZIO' ? 'VAZIO' : shift.type}
@@ -1450,8 +1410,17 @@ function DashboardContent({
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={handleCellClick}
-                                    className={`w-full bg-slate-50/50 border border-dashed border-slate-200 text-slate-300 text-[9px] font-bold py-3 rounded-xl text-center hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex flex-col items-center justify-center gap-1 group/btn`}
+                                    onClick={() => {
+                                      if (isPreviousWeek) {
+                                        showNotification(
+                                          "Semanas anteriores não podem ser editadas",
+                                          "warning",
+                                        );
+                                        return;
+                                      }
+                                      setAssigningShift({ user: collab, day });
+                                    }}
+                                    className="w-full bg-slate-50/50 border border-dashed border-slate-200 text-slate-300 text-[9px] font-bold py-3 rounded-xl text-center hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex flex-col items-center justify-center gap-1 group/btn"
                                   >
                                     <div className="size-4 rounded-full border border-slate-200 flex items-center justify-center group-hover/btn:border-blue-200">
                                       <Plus size={10} />
@@ -1997,11 +1966,8 @@ function DashboardContent({
       {/* Modal Atribuir Turno */}
       <Modal
         isOpen={!!assigningShift}
-        onClose={() => {
-          setAssigningShift(null);
-          setRangeSelection(null);
-        }}
-        title={assigningShift?.isRange ? `Preencher Intervalo: ${assigningShift?.user.name}` : `Atribuir Turno: ${assigningShift?.user.name}`}
+        onClose={() => setAssigningShift(null)}
+        title={`Atribuir Turno: ${assigningShift?.user.name}`}
       >
         <div className="space-y-6">
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -2009,19 +1975,9 @@ function DashboardContent({
               <Calendar size={18} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                {assigningShift?.isRange ? "Período da Escala" : "Data da Escala"}
-              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Data da Escala</p>
               <p className="text-sm font-bold text-slate-900 uppercase">
-                {assigningShift?.isRange ? (
-                  <>
-                    {assigningShift.day.name}, {assigningShift.day.date} 
-                    <span className="mx-2 text-slate-300 text-[10px]">até</span>
-                    {currentDaysOfWeek[assigningShift.endDayIdx!]?.name}, {currentDaysOfWeek[assigningShift.endDayIdx!]?.date}
-                  </>
-                ) : (
-                  <>{assigningShift?.day.name}, {assigningShift?.day.date}</>
-                )}
+                {assigningShift?.day.name}, {assigningShift?.day.date}
               </p>
             </div>
           </div>
@@ -2228,7 +2184,6 @@ function DashboardContent({
                       {allWeeksDays.map((day, idx) => {
                         const isToday = day.fullDate === todayIso;
                         const isMonday = day.name === 'Seg';
-                        const weekNum = Math.floor(idx / 7) + 1;
                         
                         return (
                           <th 
@@ -2238,7 +2193,7 @@ function DashboardContent({
                             {isMonday && (
                               <div className="absolute top-1 left-0 right-0 flex justify-center">
                                 <span className="bg-slate-800 px-3 py-0.5 rounded text-[9px] font-bold text-white uppercase tracking-wider whitespace-nowrap z-10 shadow-sm">
-                                  Semana {weekNum}
+                                  Semana {getWeekLabel((day as any).absoluteWeek)}
                                 </span>
                               </div>
                             )}

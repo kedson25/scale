@@ -72,6 +72,8 @@ export interface UserProfile {
   };
   defaultLunchTime?: string | null;
   whatsapp?: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
   createdAt: number;
   ownerId?: string;
   sharedWith?: string[];
