@@ -46,15 +46,21 @@ export default function AdminHeader({ user, onMenuClick, hasUnread = false }: { 
             <p className="text-sm font-bold text-slate-900">Olá, {user?.name?.split(' ')[0] || 'Admin'}</p>
             <p className="text-xs text-slate-500">Administrador</p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100">
-            <Image 
-              src="https://picsum.photos/seed/admin/100/100" 
-              alt="Admin Avatar" 
-              width={40} 
-              height={40}
-              className="object-cover"
-              referrerPolicy="no-referrer"
-            />
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm ring-1 ring-slate-100">
+            {user?.photoURL ? (
+              <Image 
+                src={user.photoURL} 
+                alt="Admin Avatar" 
+                width={40} 
+                height={40}
+                className="object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="text-sm font-black text-blue-600">
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'AD'}
+              </span>
+            )}
           </div>
         </div>
       </div>

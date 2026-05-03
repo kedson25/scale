@@ -26,7 +26,7 @@ export default function AdminMobileNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex items-center justify-around z-50">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-around z-50">
       {navItems.map((item) => {
         const itemTab = item.href === '/admin' ? 'dashboard' : item.href.split('=')[1];
         const isActive = currentTab === itemTab;
@@ -34,9 +34,9 @@ export default function AdminMobileNav() {
           <Link
             key={item.name}
             href={item.href}
-            className={`flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center gap-1 px-3 py-2 min-h-[48px] min-w-[56px] rounded-xl transition-colors ${
               isActive 
-                ? 'text-blue-600' 
+                ? 'text-blue-600 bg-blue-50/50' 
                 : 'text-slate-500'
             }`}
           >

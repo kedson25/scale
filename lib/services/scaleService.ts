@@ -72,6 +72,7 @@ export interface UserProfile {
   };
   defaultLunchTime?: string | null;
   whatsapp?: string;
+  photoURL?: string;
   termsAccepted?: boolean;
   termsAcceptedAt?: string;
   createdAt: number;

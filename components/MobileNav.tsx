@@ -18,14 +18,14 @@ export default function MobileNav({ activeTab, setActiveTab, unreadCount = 0 }: 
   ] as const;
 
   return (
-    <div className="fixed bottom-0 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full sm:max-w-md border-t border-slate-200 bg-white px-4 pb-6 pt-3 flex items-center z-20 justify-around transition-colors">
+    <div className="fixed bottom-0 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full sm:max-w-md border-t border-slate-200 bg-white px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 flex items-center z-20 justify-around transition-colors">
       {navItems.map((item) => {
         const isActive = activeTab === item.id;
         return (
           <button
             key={item.name}
             onClick={() => setActiveTab(item.id)}
-            className={`flex flex-col items-center gap-1 transition-all p-2 rounded-xl relative ${
+            className={`flex flex-col items-center gap-1 transition-all p-3 min-h-[48px] min-w-[64px] rounded-2xl relative ${
               isActive 
                 ? 'text-blue-600 bg-blue-50' 
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'

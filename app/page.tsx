@@ -54,6 +54,40 @@ export default function MobileCollaboratorView() {
 
   const currentWeek = React.useMemo(() => getCurrentWeekNumber(), []);
   const [activeTab, setActiveTab] = React.useState<'home' | 'escala' | 'avisos' | 'perfil'>('home');
+  const weeksContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to selected week when scale tab is active
+  React.useEffect(() => {
+    if (activeTab === 'escala' && weeksContainerRef.current) {
+      // Use a small timeout to ensure DOM is ready
+      const timer = setTimeout(() => {
+        const activeElement = weeksContainerRef.current?.querySelector('[data-active="true"]');
+        if (activeElement) {
+          activeElement.scrollIntoView({
+            behavior: 'auto', // Instant scroll on tab change as requested
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]); // Trigger when switching to the scale tab
+
+  // Separate effect for smooth scrolling when week changes via selection
+  React.useEffect(() => {
+    if (activeTab === 'escala' && weeksContainerRef.current) {
+      const activeElement = weeksContainerRef.current?.querySelector('[data-active="true"]');
+      if (activeElement) {
+        activeElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+      }
+    }
+  }, [selectedWeek, activeTab]);
+
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
   const [showTermsModal, setShowTermsModal] = React.useState(false);
   const [showPasswordModal, setShowPasswordModal] = React.useState(false);
@@ -545,21 +579,24 @@ export default function MobileCollaboratorView() {
     return (
       <>
         {/* Weekly Calendar Picker */}
-        <div className="px-4 py-4 bg-white border-b border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-2">
-              <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white border-b border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2 px-1 overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-widest truncate shrink-0">
                 {mounted ? (
-                  `${currentMonth} / Semana ${selectedWeek}`
+                  `${currentMonth} / Semana ${getWeekLabel(selectedWeek)}`
                 ) : (
                   'Carregando...'
                 )}
               </h2>
-              <button onClick={() => setIsScaleVisible(!isScaleVisible)} className="text-slate-400 hover:text-blue-600">
+              <button 
+                onClick={() => setIsScaleVisible(!isScaleVisible)} 
+                className="text-slate-400 hover:text-blue-600 shrink-0"
+              >
                 {isScaleVisible ? <Eye size={16} /> : <EyeOff size={16} />}
               </button>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0 ml-2">
                <button 
                 onClick={handlePrevWeek}
                 className="p-1.5 rounded-lg border border-slate-100 bg-slate-50 text-slate-400 hover:text-blue-600 transition-colors"
@@ -577,7 +614,10 @@ export default function MobileCollaboratorView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 hide-scrollbar snap-x">
+          <div 
+            ref={weeksContainerRef}
+            className="flex items-center gap-2 overflow-x-auto pt-2 pb-2 -mx-2 px-2 hide-scrollbar snap-x scroll-smooth"
+          >
              {(() => {
                const startWeek = Math.floor(selectedWeek / 15) * 15;
                return Array.from({ length: 15 }, (_, i) => {
@@ -585,14 +625,15 @@ export default function MobileCollaboratorView() {
                  return (
                    <button
                      key={w}
+                     data-active={selectedWeek === w}
                      onClick={() => setSelectedWeek(w)}
-                     className={`flex-none snap-center px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all relative border ${
+                     className={`flex-none snap-center px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all relative border ${
                        selectedWeek === w
                          ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20 scale-105"
                          : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
                      }`}
                    >
-                     S{getWeekLabel(w)}
+                     Semana {getWeekLabel(w)}
                      {w === currentWeek && (
                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -610,7 +651,7 @@ export default function MobileCollaboratorView() {
              </div>
           </div>
 
-          <div className="mt-4 flex justify-between items-center bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+          <div className="mt-2 flex justify-between items-center bg-slate-50/50 p-2 rounded-xl border border-slate-100">
             {currentDaysOfWeek.map((day) => {
               const isToday = day.fullDate === todayFullDate;
               return (
@@ -632,7 +673,7 @@ export default function MobileCollaboratorView() {
         </div>
 
         {/* Shift List Section */}
-        <div className="flex flex-col gap-3 p-4 pb-32">
+        <div className="flex flex-col gap-2 p-4 pb-32">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Escala da Semana</h3>
           
           {!isScaleVisible ? (
@@ -657,7 +698,7 @@ export default function MobileCollaboratorView() {
 
               if (shift.type === 'VAZIO') {
                 return (
-                  <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm opacity-60">
+                  <div key={day.fullDate} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-200 shadow-sm opacity-60">
                     <div className="flex flex-col items-center min-w-[48px]">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">{day.name}</span>
                       <span className="text-xl font-bold text-slate-500">{day.date}</span>
@@ -677,7 +718,7 @@ export default function MobileCollaboratorView() {
 
               if (shift.type === 'DSR') {
                 return (
-                  <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-200 border border-emerald-400">
+                  <div key={day.fullDate} className="flex items-center gap-4 p-3 rounded-xl bg-emerald-200 border border-emerald-400">
                     <div className="flex flex-col items-center min-w-[48px]">
                       <span className="text-[10px] font-bold text-emerald-950 uppercase">{day.name}</span>
                       <span className="text-xl font-bold text-emerald-950">{day.date}</span>
@@ -698,7 +739,7 @@ export default function MobileCollaboratorView() {
 
               if (shift.type === 'FALTA') {
                 return (
-                  <div key={day.fullDate} className="flex items-center gap-4 p-4 rounded-2xl bg-red-50 border border-red-100">
+                  <div key={day.fullDate} className="flex items-center gap-4 p-3 rounded-xl bg-red-50 border border-red-100">
                     <div className="flex flex-col items-center min-w-[48px]">
                       <span className="text-[10px] font-bold text-red-400 uppercase">{day.name}</span>
                       <span className="text-xl font-bold text-red-600">{day.date}</span>
@@ -721,7 +762,7 @@ export default function MobileCollaboratorView() {
               return (
                 <div 
                   key={day.fullDate} 
-                  className={`flex items-center gap-4 p-4 rounded-2xl border shadow-sm relative overflow-hidden transition-all ${
+                  className={`flex items-center gap-4 p-3 rounded-xl border shadow-sm relative overflow-hidden transition-all ${
                     isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'
                   }`}
                 >

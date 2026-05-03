@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 * {
-  border-radius: 0 !important;
+  /* Removed aggressive border-radius reset to maintain design system integrity */
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -11,6 +11,28 @@
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+.mask-fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
 
 body {

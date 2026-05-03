@@ -38,6 +38,8 @@ import {
   MoreVertical,
   Link as LinkIcon,
   MapPin,
+  Activity,
+  ArrowRight,
 } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
@@ -235,7 +237,7 @@ function AdminDashboardContent() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden transition-colors">
+    <div className="flex h-screen bg-slate-50 overflow-hidden transition-colors font-sans">
       {adminProfile && (
         <TermsModal 
           isOpen={showTermsModal} 
@@ -364,7 +366,7 @@ function PostosContent({
           <p className="text-slate-500 font-bold">Instalando mapa...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-5 gap-4">
           {postos
             .sort((a, b) => a.numero - b.numero)
             .map((p) => {
@@ -879,8 +881,8 @@ function DashboardContent({
           }
 
           const lunchMessage = user.defaultLunchTime ? ` Seu horário de almoço é: ${user.defaultLunchTime}.` : "";
-          const dbMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${lunchMessage}${offDaysMessageDB}`;
-          const pushMessage = `A sua escala para a semana ${getWeekLabel(publishWeek)} foi atualizada.${lunchMessage}${offDaysMessagePush}`;
+          const dbMessage = `A sua escala para a Semana ${getWeekLabel(publishWeek)} foi atualizada.${lunchMessage}${offDaysMessageDB}`;
+          const pushMessage = `A sua escala para a Semana ${getWeekLabel(publishWeek)} foi atualizada.${lunchMessage}${offDaysMessagePush}`;
 
           await scaleService.createAlert({
             title: "Escala Atualizada 📅",
@@ -908,7 +910,7 @@ function DashboardContent({
         if (publishOption === "general") {
           await scaleService.createAlert({
             title: "Nova Escala Publicada 📅",
-            message: `Atenção equipe! A escala para a semana ${getWeekLabel(publishWeek)} foi publicada e já está disponível para consulta no aplicativo.`,
+            message: `Atenção equipe! A escala para a Semana ${getWeekLabel(publishWeek)} foi publicada e já está disponível para consulta no aplicativo.`,
             targetAudience: "all",
             targetId: "",
             priority: "Normal",
@@ -920,7 +922,7 @@ function DashboardContent({
 
         showNotification(
           publishOption === "general"
-            ? `Escala publicada e ${individualsNotified} pessoas notificadas na semana ${getWeekLabel(publishWeek)}.`
+            ? `Escala publicada e ${individualsNotified} pessoas notificadas na Semana ${getWeekLabel(publishWeek)}.`
             : `Alterações salvas e ${individualsNotified} pessoas notificadas individualmente.`,
           "success",
         );
@@ -1210,7 +1212,7 @@ function DashboardContent({
                     </button>
                    </div>
                 </div>
-                <div className="flex bg-slate-100/80 p-1.5 rounded-2xl overflow-x-auto border border-slate-200/60 shadow-inner max-w-full relative hide-scrollbar">
+                <div className="flex bg-slate-100/80 p-1.5 rounded-2xl overflow-x-auto border border-slate-200/60 shadow-inner max-w-full relative hide-scrollbar mask-fade-right">
                   {(() => {
                     const startWeek = Math.floor(selectedWeek / 15) * 15;
                     return Array.from({ length: 15 }, (_, i) => {
@@ -1225,7 +1227,7 @@ function DashboardContent({
                               : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 z-0"
                           }`}
                         >
-                          S{getWeekLabel(weekIdx)}
+                          Semana {getWeekLabel(weekIdx)}
                           {weekIdx === currentWeekNum && (
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -1283,9 +1285,10 @@ function DashboardContent({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
+            <div className="relative group">
+              <div className="overflow-x-auto hide-scrollbar relative mask-fade-right">
+                <table className="w-full border-collapse">
+                  <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="p-4 text-left w-64 min-w-[200px] border-r border-slate-200">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -1315,7 +1318,7 @@ function DashboardContent({
                       return (
                         <th
                           key={day.name}
-                          className={`p-4 text-center min-w-[140px] ${isToday ? "bg-blue-50/50" : ""}`}
+                          className={`p-4 text-center min-w-[140px] border-l border-slate-100 ${isToday ? "bg-blue-50/50" : ""}`}
                         >
                           <div
                             className={`text-[10px] font-bold uppercase ${isToday ? "text-blue-600" : "text-slate-400"}`}
@@ -1447,6 +1450,7 @@ function DashboardContent({
               </table>
             </div>
           </div>
+        </div>
 
           {/* Mobile Print Container (Hidden) */}
           <div
@@ -1458,8 +1462,8 @@ function DashboardContent({
                 Escala de Trabalho
               </h1>
               <p className="text-lg text-slate-500 font-bold">
-                Semana {selectedWeek} ({currentDaysOfWeek[0].date} a{" "}
-                {currentDaysOfWeek[6].date} de agosto de 2026)
+                Semana {getWeekLabel(selectedWeek)} ({currentDaysOfWeek[0].date} a{" "}
+                {currentDaysOfWeek[6].date} de {new Date(currentDaysOfWeek[6].fullDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
               </p>
             </div>
 
@@ -1713,7 +1717,7 @@ function DashboardContent({
         <div className="space-y-6">
           <p className="text-lg font-bold text-slate-900 text-center pt-2">
             Publicar a{" "}
-            <span className="text-blue-600">Semana {publishWeek}</span>?
+            <span className="text-blue-600">Semana {getWeekLabel(publishWeek)}</span>?
           </p>
 
           <div className="space-y-3 px-2">
@@ -1812,8 +1816,8 @@ function DashboardContent({
                 Escala de Trabalho
               </h1>
               <p className="text-lg text-slate-500 font-bold">
-                Semana {selectedWeek} ({currentDaysOfWeek[0].date} a{" "}
-                {currentDaysOfWeek[6].date} de agosto de 2026)
+                Semana {getWeekLabel(selectedWeek)} ({currentDaysOfWeek[0].date} a{" "}
+                {currentDaysOfWeek[6].date} de {new Date(currentDaysOfWeek[6].fullDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
               </p>
             </div>
 
@@ -1967,7 +1971,7 @@ function DashboardContent({
         onClose={() => setAssigningShift(null)}
         title={`Atribuir Turno: ${assigningShift?.user.name}`}
       >
-        <div className="space-y-6">
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar p-1">
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
               <Calendar size={18} />
@@ -2153,7 +2157,7 @@ function DashboardContent({
               </div>
               <div>
                 <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Mapa Mensal - Escala Completa</h2>
-                <p className="text-xs text-slate-500 font-medium">Ciclo de 5 Semanas • {filteredCollaborators.length} Colaboradores</p>
+                <p className="text-xs text-slate-500 font-medium">{filteredCollaborators.length} Colaboradores</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -2313,10 +2317,15 @@ function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 transition-colors">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 transition-colors">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h3 className="text-xl font-bold text-slate-900">{title}</h3>
+          <h3 id="modal-title" className="text-xl font-black text-slate-900 tracking-tight">{title}</h3>
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
@@ -2324,7 +2333,7 @@ function Modal({
             <X size={20} />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[80vh]">{children}</div>
+        <div className="p-6 overflow-y-auto max-h-[80vh] custom-scrollbar">{children}</div>
       </div>
     </div>
   );
@@ -2636,45 +2645,180 @@ function EquipesContent({
                   Configurações Gerais
                 </h3>
 
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">
-                      Nome da Equipe
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      value={editingTeam.name}
-                      onChange={(e) =>
-                        setEditingTeam({ ...editingTeam, name: e.target.value })
-                      }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">
+                        Nome da Equipe
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={editingTeam.name}
+                        onChange={(e) =>
+                          setEditingTeam({ ...editingTeam, name: e.target.value })
+                        }
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
+                        placeholder="Ex: TI Suporte"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">
+                        Departamento / Unidade
+                      </label>
+                      <input
+                        type="text"
+                        value={editingTeam.department || ""}
+                        onChange={(e) =>
+                          setEditingTeam({ ...editingTeam, department: e.target.value })
+                        }
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
+                        placeholder="Ex: Matriz, Filial 1"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">
-                      Líder da Equipe
-                    </label>
-                    <select
-                      value={editingTeam.leaderId || ""}
-                      onChange={(e) =>
-                        setEditingTeam({
-                          ...editingTeam,
-                          leaderId: e.target.value,
-                        })
-                      }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
-                    >
-                      <option value="">Selecione um líder</option>
-                      {users
-                        .filter((u) => u.teamId === editingTeam.id)
-                        .map((member) => (
-                          <option key={member.uid} value={member.uid}>
-                            {member.name}
-                          </option>
-                        ))}
-                    </select>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">
+                        Líder da Equipe
+                      </label>
+                      <div className="relative">
+                        <Crown className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" size={18} />
+                        <select
+                          value={editingTeam.leaderId || ""}
+                          onChange={(e) =>
+                            setEditingTeam({
+                              ...editingTeam,
+                              leaderId: e.target.value,
+                            })
+                          }
+                          className="w-full pl-10 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors appearance-none"
+                        >
+                          <option value="">Selecione um líder</option>
+                          {users
+                            .filter((u) => u.teamId === editingTeam.id)
+                            .map((member) => (
+                              <option key={member.uid} value={member.uid}>
+                                {member.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">
+                        Carga Horária Semanal (h)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="168"
+                        value={editingTeam.workload || 44}
+                        onChange={(e) =>
+                          setEditingTeam({ ...editingTeam, workload: parseInt(e.target.value) })
+                        }
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
+                      />
+                    </div>
                   </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-bold text-slate-700">Cor de Identificação</label>
+                    <div className="flex flex-wrap gap-3">
+                      {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b', '#000000'].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setEditingTeam({ ...editingTeam, color })}
+                          className={`w-10 h-10 rounded-full border-4 transition-all hover:scale-110 ${editingTeam.color === color ? 'border-white ring-2 ring-blue-600' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                      <div className="relative">
+                        <input
+                          type="color"
+                          value={editingTeam.color || '#3b82f6'}
+                          onChange={(e) => setEditingTeam({ ...editingTeam, color: e.target.value })}
+                          className="w-10 h-10 rounded-full cursor-pointer border-4 border-transparent opacity-60 hover:opacity-100 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+              </div>
+
+              {/* Schedule Configuration */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 transition-colors">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Calendar size={20} className="text-blue-600" />
+                    Horário Padrão da Equipe
+                  </h3>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const defaultSchedule = {
+                        seg: "08:00-17:00", ter: "08:00-17:00", qua: "08:00-17:00",
+                        qui: "08:00-17:00", sex: "08:00-17:00", sab: "08:00-12:00", dom: "FOLGA"
+                      };
+                      setEditingTeam({...editingTeam, schedule: defaultSchedule});
+                    }}
+                    className="text-[10px] font-black text-blue-600 uppercase hover:underline"
+                  >
+                    Resetar Padrão
+                  </button>
+                </div>
+                
+                <p className="text-xs text-slate-500 bg-blue-50 p-3 rounded-xl border border-blue-100/50">
+                  Defina o horário de trabalho base. Você poderá personalizar turnos individuais na escala semanal.
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {[
+                    { key: 'seg', label: 'Seg' },
+                    { key: 'ter', label: 'Ter' },
+                    { key: 'qua', label: 'Qua' },
+                    { key: 'qui', label: 'Qui' },
+                    { key: 'sex', label: 'Sex' },
+                    { key: 'sab', label: 'Sáb' },
+                    { key: 'dom', label: 'Dom' },
+                  ].map((day) => {
+                    const value = (editingTeam.schedule as any)?.[day.key] || "";
+                    const isOff = value.toUpperCase() === "FOLGA" || value === "";
+                    
+                    return (
+                      <div key={day.key} className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">
+                          {day.label}
+                        </label>
+                        <div 
+                          className={`flex flex-col gap-2 p-2 rounded-xl transition-all border ${isOff ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-blue-200 ring-2 ring-blue-50 shadow-sm'}`}
+                        >
+                          <input
+                            type="text"
+                            value={value}
+                            onChange={(e) => {
+                              const newSchedule = { ...(editingTeam.schedule || {}) } as any;
+                              newSchedule[day.key] = e.target.value;
+                              setEditingTeam({ ...editingTeam, schedule: newSchedule });
+                            }}
+                            placeholder="08-17"
+                            className="w-full bg-transparent text-center text-xs font-black text-slate-900 outline-none placeholder:text-slate-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSchedule = { ...(editingTeam.schedule || {}) } as any;
+                              newSchedule[day.key] = isOff ? "08:00-17:00" : "FOLGA";
+                              setEditingTeam({ ...editingTeam, schedule: newSchedule });
+                            }}
+                            className={`text-[9px] font-black uppercase py-1 rounded-md transition-colors ${isOff ? 'text-blue-600 hover:bg-white' : 'text-slate-400 hover:bg-slate-100'}`}
+                          >
+                            {isOff ? "Ativar" : "Folga"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -2690,7 +2834,7 @@ function EquipesContent({
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                       Colaboradores Atuais
                     </label>
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                    <div className="space-y-2 max-h-[400px] min-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
                       {users
                         .filter((u) => u.teamId === editingTeam.id)
                         .sort((a, b) => {
@@ -2828,7 +2972,7 @@ function EquipesContent({
                         className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-600/50 text-slate-900 transition-colors"
                       />
                     </div>
-                    <div className="space-y-1 max-h-[340px] overflow-y-auto pr-2">
+                    <div className="space-y-1 max-h-[400px] min-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
                       {users
                         .filter(
                           (u) =>
@@ -2867,23 +3011,53 @@ function EquipesContent({
 
             {/* Sidebar Actions */}
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 transition-colors">
-                <h3 className="text-lg font-bold text-slate-900">Ações</h3>
-                <div className="space-y-3">
+              {/* Team Statistics Widget */}
+              <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl shadow-slate-200 space-y-6 overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <Activity size={80} />
+                </div>
+                <h3 className="text-lg font-black tracking-tight">Status da Equipe</h3>
+                
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Colaboradores</span>
+                    <span className="text-lg font-black">{users.filter(u => u.teamId === editingTeam.id).length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Líderes/Admin</span>
+                    <span className="text-lg font-black">
+                      {(editingTeam.sharedWith?.length || 0) + (editingTeam.leaderId ? 1 : 0)}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
+                      style={{ width: `${Math.min(100, (users.filter(u => u.teamId === editingTeam.id).length / 20) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                    A equipe está configurada com uma carga horária de <span className="text-blue-400">{editingTeam.workload || 44}h semanais</span>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Ações Rápidas</h3>
+                <div className="space-y-2">
                   <button
                     disabled={isSubmitting}
                     type="submit"
-                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center justify-center gap-2 group"
                   >
-                    <Save size={18} />
+                    <Save size={20} className="group-hover:scale-110 transition-transform" />
                     {isSubmitting ? "Salvando..." : "Salvar Alterações"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingTeam(null)}
-                    className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
+                    className="w-full py-3 bg-slate-50 text-slate-500 rounded-2xl font-bold hover:bg-slate-100 transition-all border border-slate-100"
                   >
-                    Cancelar
+                    Voltar para lista
                   </button>
                 </div>
               </div>
@@ -2900,14 +3074,18 @@ function EquipesContent({
               </div>
 
               {(editingTeam.ownerId === currentUser?.uid || isadmin) && (
-                <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4 transition-colors">
-                  <div className="flex items-center gap-2 text-red-700">
-                    <Trash2 size={20} />
-                    <h3 className="font-bold">Zona de Perigo</h3>
+                <div className="bg-red-50 p-6 rounded-3xl border border-red-100 space-y-4">
+                  <div className="flex items-center gap-3 text-red-700">
+                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                      <Trash2 size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm uppercase tracking-wider">Zona de Perigo</h3>
+                      <p className="text-[10px] text-red-600 font-bold">Ação irreversível</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-red-600 leading-relaxed">
-                    A exclusão de uma equipe é irreversível. Todos os membros
-                    ficarão sem equipe vinculada.
+                  <p className="text-xs text-red-700/70 font-medium leading-relaxed">
+                    Ao excluir esta equipe, todos os {users.filter(u => u.teamId === editingTeam.id).length} membros ficarão sem escala vinculada.
                   </p>
                   <button
                     type="button"
@@ -2915,9 +3093,9 @@ function EquipesContent({
                       handleDeleteTeam(editingTeam.id!);
                       setEditingTeam(null);
                     }}
-                    className="w-full py-2.5 bg-white text-red-600 border border-red-200 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-all"
+                    className="w-full py-3 bg-white text-red-600 border border-red-200 rounded-2xl text-xs font-black hover:bg-red-600 hover:text-white transition-all shadow-sm"
                   >
-                    Excluir Equipe
+                    Excluir Equipe Permanentemente
                   </button>
                 </div>
               )}
@@ -2929,20 +3107,32 @@ function EquipesContent({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 font-sans">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Equipes</h2>
-          <p className="text-slate-500 text-sm">
-            Gerencie seus colaboradores e departamentos.
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Equipes</h2>
+          <p className="text-slate-500 text-sm font-medium">
+            Gerencie seus colaboradores, líderes e configurações de escala.
           </p>
         </div>
-        <button
-          onClick={() => setShowTeamForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all"
-        >
-          <Plus size={18} /> Nova Equipe
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar equipe..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-600/50 transition-all"
+            />
+          </div>
+          <button
+            onClick={() => setShowTeamForm(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-black hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+          >
+            <Plus size={20} /> Nova Equipe
+          </button>
+        </div>
       </div>
 
       {/* Modal Criar Equipe */}
@@ -3070,85 +3260,170 @@ function EquipesContent({
         </div>
       )}
 
-      <div className="flex flex-col gap-4">
-        {teams.map((team) => (
-          <div
-            key={team.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, team.id!)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, team.id!)}
-            className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group cursor-move flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${draggedTeamId === team.id ? "opacity-50" : ""}`}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 shrink-0 flex items-center justify-center text-blue-600">
-                <Users size={24} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {team.name}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {users.filter((u) => u.teamId === team.id).length}{" "}
-                  colaboradores
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-              <button
-                onClick={() => setEditingTeam(team)}
-                className="flex-1 sm:flex-none px-4 py-2 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap"
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {teams
+          .filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((team) => {
+            const teamMembers = users.filter((u) => u.teamId === team.id);
+            const leader = users.find(u => u.uid === team.leaderId);
+            
+            return (
+              <div
+                key={team.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, team.id!)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, team.id!)}
+                className={`group relative bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all cursor-move flex flex-col p-6 overflow-hidden ${draggedTeamId === team.id ? "opacity-30 scale-95" : ""}`}
               >
-                Configurar Escala
-              </button>
+                {/* Team Accent Color Bar */}
+                <div 
+                  className="absolute top-0 left-0 right-0 h-1.5" 
+                  style={{ backgroundColor: team.color || '#3b82f6' }}
+                />
 
-              <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                {team.ownerId === currentUser?.uid && (
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 border border-slate-100 relative">
+                      <Users size={28} />
+                      <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-black h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center shadow-md">
+                        {teamMembers.length}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 leading-tight">
+                        {team.name}
+                      </h3>
+                      {team.department && (
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {team.department}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => setEditingTeam(team)}
+                      className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Configurações"
+                    >
+                      <Settings size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-4 flex-1">
+                  {leader && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Líder Responsável</span>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 rounded-xl border border-blue-100/30">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600 ring-2 ring-white">
+                          {getInitials(leader.name)}
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 truncate">{leader.name}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100/50">
+                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Carga Horária</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-black text-slate-800">{team.workload || 44}h</span>
+                        <span className="text-xs text-slate-400 font-bold">semanal</span>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100/50">
+                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Membros</span>
+                      <div className="flex -space-x-2 overflow-hidden">
+                        {teamMembers.slice(0, 4).map((m) => (
+                          <div 
+                            key={m.uid} 
+                            className="w-7 h-7 rounded-full bg-white border-2 border-white ring-1 ring-slate-100 flex items-center justify-center text-[8px] font-black text-slate-500 shadow-sm"
+                            title={m.name}
+                          >
+                            {getInitials(m.name)}
+                          </div>
+                        ))}
+                        {teamMembers.length > 4 && (
+                          <div className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white ring-1 ring-slate-100 flex items-center justify-center text-[8px] font-black text-slate-600 shadow-sm">
+                            +{teamMembers.length - 4}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <div className="flex gap-1.5">
+                    {team.ownerId === currentUser?.uid && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = `${window.location.origin}/join?teamId=${team.id}`;
+                          navigator.clipboard.writeText(link);
+                          showNotification("Link de convite copiado!");
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        title="Link de Convite"
+                      >
+                        <LinkIcon size={18} />
+                      </button>
+                    )}
+                    {team.ownerId === currentUser?.uid && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareTeamId(team.id!);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        title="Compartilhar"
+                      >
+                        <Share2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                  
                   <button
-                    onClick={() => {
-                      const link = `${window.location.origin}/join?teamId=${team.id}`;
-                      navigator.clipboard.writeText(link);
-                      showNotification(
-                        "Link de convite copiado para a área de transferência!",
-                      );
-                    }}
-                    className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
-                    title="Copiar Link de Convite"
+                    onClick={() => setEditingTeam(team)}
+                    className="px-6 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-blue-600 shadow-lg shadow-slate-200 transition-all flex items-center gap-2 group/btn"
                   >
-                    <LinkIcon size={18} />
+                    Gerenciar <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
                   </button>
-                )}
-                {team.ownerId === currentUser?.uid && (
-                  <button
-                    onClick={() => setShareTeamId(team.id!)}
-                    className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
-                    title="Compartilhar Equipe"
-                  >
-                    <Share2 size={18} />
-                  </button>
-                )}
-                <button
-                  onClick={() => setEditingTeam(team)}
-                  className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
-                  title="Editar Equipe"
-                >
-                  <Edit size={18} />
-                </button>
-                {(team.ownerId === currentUser?.uid || isadmin) && (
-                  <button
-                    onClick={() => handleDeleteTeam(team.id!)}
-                    className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                    title="Excluir Equipe"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })}
       </div>
+
+      {teams.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+        <div className="bg-white p-20 rounded-[40px] border border-dashed border-slate-300 flex flex-col items-center justify-center gap-6 text-center animate-in fade-in zoom-in duration-300">
+          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+             <Users size={48} />
+          </div>
+          <div className="max-w-xs">
+            <h3 className="text-xl font-black text-slate-900 mb-2">
+              {searchTerm ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"}
+            </h3>
+            <p className="text-slate-500 text-sm font-medium">
+              {searchTerm 
+                ? "Tente buscar por outro nome ou termo." 
+                : "Comece criando equipes para organizar a escala de trabalho."}
+            </p>
+          </div>
+          {!searchTerm && (
+            <button
+              onClick={() => setShowTeamForm(true)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-sm font-black flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-200/50"
+            >
+              <Plus size={20} />
+              Criar Primeira Equipe
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -3824,7 +4099,8 @@ function AvisosContent({
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Version Desktop: Tabela */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200">
@@ -3959,6 +4235,56 @@ function AvisosContent({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Version Mobile: Cards */}
+          <div className="md:hidden divide-y divide-slate-100 font-sans">
+            {alerts.length === 0 ? (
+               <div className="p-12 text-center text-slate-400 text-sm italic">Nenhum aviso enviado recentemente.</div>
+            ) : (
+              alerts.slice(0, 10).map((alertItem) => (
+                <div key={alertItem.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="font-black text-slate-900 text-sm leading-tight">{alertItem.title}</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 focus:outline-none">
+                        {new Date(alertItem.scheduledFor || alertItem.createdAt).toLocaleString("pt-BR", { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => alertItem.id && handleDeleteAlert(alertItem.id)}
+                      className={`p-2 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                        deletingId === alertItem.id
+                          ? "bg-red-500 text-white shadow-md"
+                          : "bg-slate-50 text-slate-400"
+                      }`}
+                    >
+                      <Trash2 size={16} />
+                      {deletingId === alertItem.id && <span className="text-[10px] font-black uppercase">Confirmar</span>}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{alertItem.message}</p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                      alertItem.targetAudience === "all" ? "bg-blue-50 text-blue-600 border border-blue-100" : 
+                      alertItem.targetAudience === "team" ? "bg-purple-50 text-purple-600 border border-purple-100" : 
+                      "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                    }`}>
+                      {alertItem.targetAudience === "all" ? "Geral" : alertItem.targetAudience === "team" ? "Equipe" : "Individual"}
+                    </span>
+                    {alertItem.scheduledFor && alertItem.scheduledFor > Date.now() ? (
+                      <span className="bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <Clock size={10} /> Agendado
+                      </span>
+                    ) : (
+                      <span className="bg-green-50 text-green-600 border border-green-100 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <Check size={10} /> Enviado
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -5126,27 +5452,27 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 }
 
 function getShiftColor(type: string, customColor?: string) {
-  if (type === "VAZIO") return "bg-slate-50";
+  const SHIFT_TYPES: Record<string, string> = {
+    MANHÃ: "bg-blue-600",
+    TARDE: "bg-indigo-500",
+    NOITE: "bg-slate-800",
+    FALTA: "bg-red-600",
+    DSR: "bg-green-600",
+    FOLGA: "bg-green-600",
+    FERIADO: "bg-orange-500",
+    LICENÇA: "bg-emerald-400",
+    AFASTADO: "bg-slate-400",
+    VAZIO: "bg-slate-100",
+  };
 
-  // If it's a standard type with a default blue color, we override it with its standard color
-  if (customColor === "bg-blue-500" && (type === "DSR" || type === "FALTA")) {
-    return type === "DSR" ? "bg-green-600" : "bg-red-600";
+  // If it's a standard type but with a default blue color placeholder code, we return its standard intended color
+  if (customColor === "bg-blue-500" && SHIFT_TYPES[type.toUpperCase()]) {
+    return SHIFT_TYPES[type.toUpperCase()];
   }
+
   if (customColor && customColor.startsWith("bg-")) return customColor;
-  switch (type) {
-    case "MANHÃ":
-      return "bg-blue-600";
-    case "TARDE":
-      return "bg-indigo-500";
-    case "NOITE":
-      return "bg-slate-800";
-    case "FALTA":
-      return "bg-red-600";
-    case "DSR":
-      return "bg-green-600";
-    default:
-      return "bg-slate-400";
-  }
+  
+  return SHIFT_TYPES[type.toUpperCase()] || "bg-slate-400";
 }
 
 function LunchManager({
@@ -5409,8 +5735,26 @@ function LunchManager({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {lunchGroups.map((group) => {
+        {lunchGroups.length === 0 ? (
+          <div className="bg-white p-12 rounded-3xl border border-dashed border-slate-300 flex flex-col items-center justify-center gap-4 text-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+               <Clock size={32} />
+            </div>
+            <div>
+              <p className="text-slate-500 font-bold">Nenhum grupo de almoço criado</p>
+              <p className="text-slate-400 text-xs">Adicione horários de almoço para começar a organizar sua equipe.</p>
+            </div>
+            <button
+              onClick={() => setIsAddingTime(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg"
+            >
+              <Plus size={18} />
+              Criar Primeiro Grupo
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {lunchGroups.map((group) => {
             const groupUsers = users.filter(
               (u) => u.defaultLunchTime === group,
             );
@@ -5474,7 +5818,8 @@ function LunchManager({
             );
           })}
         </div>
-      </div>
+      )}
+    </div>
 
       <Modal
         isOpen={isAssigningUsers}

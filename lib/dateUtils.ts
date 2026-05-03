@@ -55,7 +55,16 @@ export const getCurrentWeekNumber = () => {
   return weeksPassed;
 };
 
-export const getWeekLabel = (weekNumber: number) => {
-  const label = ((weekNumber % 5) + 5) % 5 + 1;
-  return label;
+export const getWeekLabel = (weekIndex: number) => {
+  const targetMonday = new Date(REFERENCE_MONDAY);
+  targetMonday.setDate(REFERENCE_MONDAY.getDate() + (weekIndex) * 7);
+  
+  // Get ISO week number
+  const d = new Date(Date.UTC(targetMonday.getFullYear(), targetMonday.getMonth(), targetMonday.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  
+  return weekNo.toString();
 };
